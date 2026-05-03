@@ -16,13 +16,6 @@ export function PhoneDesktop({ onOpenApp }) {
         onContextMenu={(event) => event.preventDefault()}
         onDragStart={(event) => event.preventDefault()}
       >
-        <div className="desktop-wallpaper" aria-hidden="true">
-          <span className="desktop-map-line desktop-map-line-a" />
-          <span className="desktop-map-line desktop-map-line-b" />
-          <span className="desktop-stamp desktop-stamp-a">CHAT</span>
-          <span className="desktop-stamp desktop-stamp-b">LOCAL</span>
-        </div>
-
         <header className="desktop-top">
           <span className="desktop-kicker">PRIVATE PHONE</span>
           <h1>聊天</h1>
@@ -45,8 +38,6 @@ export function PhoneDesktop({ onOpenApp }) {
             </button>
           ))}
         </div>
-
-        <span className="desktop-home-indicator" aria-hidden="true" />
       </section>
     </main>
   );

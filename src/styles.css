@@ -157,89 +157,8 @@ button {
   display: flex;
   flex-direction: column;
   padding: 28px 18px 16px;
-  background:
-    linear-gradient(120deg, rgba(254, 254, 254, 0.64), rgba(240, 234, 222, 0.3)),
-    repeating-linear-gradient(0deg, rgba(29, 29, 29, 0.025) 0 1px, transparent 1px 6px),
-    #efe9dc;
-  color: #24221f;
-}
-
-.desktop-wallpaper {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.desktop-wallpaper::before {
-  position: absolute;
-  inset: 78px 24px auto auto;
-  width: 138px;
-  height: 138px;
-  border: 1px solid rgba(79, 104, 125, 0.2);
-  border-radius: 50%;
-  content: '';
-}
-
-.desktop-wallpaper::after {
-  position: absolute;
-  right: 22px;
-  bottom: 104px;
-  width: 118px;
-  height: 118px;
-  border: 1px solid rgba(89, 112, 88, 0.22);
-  border-radius: 18px;
-  content: '';
-  transform: rotate(8deg);
-}
-
-.desktop-map-line {
-  position: absolute;
-  height: 1px;
-  background: rgba(79, 104, 125, 0.18);
-  transform-origin: left center;
-}
-
-.desktop-map-line-a {
-  top: 168px;
-  left: 20px;
-  width: 240px;
-  transform: rotate(-16deg);
-}
-
-.desktop-map-line-b {
-  right: -28px;
-  bottom: 238px;
-  width: 214px;
-  transform: rotate(24deg);
-}
-
-.desktop-stamp {
-  position: absolute;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(29, 29, 29, 0.14);
-  border-radius: 999px;
-  color: rgba(29, 29, 29, 0.32);
-  font-size: 11px;
-  line-height: 1;
-}
-
-.desktop-stamp-a {
-  top: 112px;
-  right: 38px;
-  width: 58px;
-  height: 24px;
-  transform: rotate(10deg);
-}
-
-.desktop-stamp-b {
-  right: 42px;
-  bottom: 180px;
-  width: 72px;
-  height: 24px;
-  transform: rotate(-8deg);
+  background: #EAF4FD;
+  color: #163044;
 }
 
 .desktop-top {
@@ -251,14 +170,14 @@ button {
 }
 
 .desktop-kicker {
-  color: rgba(29, 29, 29, 0.46);
+  color: rgba(22, 48, 68, 0.48);
   font-size: 11px;
   line-height: 1;
 }
 
 .desktop-top h1 {
   margin: 0;
-  color: #1e1d1a;
+  color: #143044;
   font-family: var(--l2l-font-ui);
   font-size: 38px;
   line-height: 0.95;
@@ -267,7 +186,7 @@ button {
 
 .desktop-top p {
   margin: 0;
-  color: rgba(29, 29, 29, 0.58);
+  color: rgba(22, 48, 68, 0.58);
   font-size: 13px;
   line-height: 1.35;
 }
@@ -315,108 +234,32 @@ button {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid rgba(29, 29, 29, 0.1);
-  border-radius: 17px;
-  background:
-    linear-gradient(160deg, rgba(254, 254, 254, 0.74), rgba(241, 232, 213, 0.56)),
-    #f3ead7;
-  box-shadow:
-    0 12px 24px rgba(76, 66, 48, 0.12),
-    inset 0 1px 0 rgba(254, 254, 254, 0.82);
+  border: 1px solid rgba(65, 106, 136, 0.16);
+  border-radius: 15px;
+  background: rgba(254, 254, 254, 0.7);
+  box-shadow: 0 10px 22px rgba(73, 121, 158, 0.08);
   transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
-.desktop-app-tile::before,
-.desktop-app-tile::after {
-  position: absolute;
-  content: '';
-  pointer-events: none;
-}
-
-.desktop-app-tile::before {
-  inset: 10px;
-  border: 1px solid currentColor;
-  border-radius: 13px;
-  opacity: 0.18;
-}
-
-.desktop-app-tile::after {
-  right: 10px;
-  bottom: 9px;
-  width: 13px;
-  height: 13px;
-  border-radius: 999px;
-  background: currentColor;
-  opacity: 0.16;
+.desktop-app-button:not(:disabled):hover .desktop-app-tile {
+  background: rgba(254, 254, 254, 0.86);
+  box-shadow: 0 12px 26px rgba(73, 121, 158, 0.12);
 }
 
 .desktop-app-button.is-chat .desktop-app-tile {
-  background:
-    radial-gradient(circle at 72% 24%, rgba(254, 254, 254, 0.52), transparent 29%),
-    linear-gradient(145deg, #8da4b7, #d7bbab);
-  color: #10202d;
-}
-
-.desktop-app-button.is-chat .desktop-app-tile::before {
-  inset: 14px 12px 16px;
-  border-radius: 12px 12px 12px 5px;
-  background: rgba(254, 254, 254, 0.28);
-  opacity: 1;
+  color: #2d7db3;
 }
 
 .desktop-app-button.is-contacts .desktop-app-tile {
-  background:
-    radial-gradient(circle at 68% 22%, rgba(254, 254, 254, 0.5), transparent 28%),
-    linear-gradient(145deg, #a5b9a5, #cec0df);
-  color: #243424;
-}
-
-.desktop-app-button.is-contacts .desktop-app-tile::before {
-  inset: 13px 17px 23px;
-  border-radius: 999px;
-  background: rgba(254, 254, 254, 0.32);
-  opacity: 1;
-}
-
-.desktop-app-button.is-contacts .desktop-app-tile::after {
-  right: 17px;
-  bottom: 13px;
-  width: 26px;
-  height: 12px;
-  border-radius: 999px 999px 8px 8px;
-  background: currentColor;
-  opacity: 0.16;
+  color: #378061;
 }
 
 .desktop-app-button.is-worldbook .desktop-app-tile {
-  background:
-    radial-gradient(circle at 76% 20%, rgba(254, 254, 254, 0.54), transparent 30%),
-    linear-gradient(145deg, #cfb992, #8da4b7);
-  color: #2e2a20;
-}
-
-.desktop-app-button.is-worldbook .desktop-app-tile::before {
-  inset: 11px 15px;
-  border-radius: 8px;
-  border-left-color: transparent;
-  background:
-    linear-gradient(90deg, transparent 48%, rgba(46, 42, 32, 0.18) 49% 51%, transparent 52%),
-    rgba(254, 254, 254, 0.25);
-  opacity: 1;
+  color: #9a6730;
 }
 
 .desktop-app-button.is-settings .desktop-app-tile {
-  background:
-    radial-gradient(circle at 72% 22%, rgba(254, 254, 254, 0.52), transparent 28%),
-    linear-gradient(145deg, #efe2c6, #d8d3c9);
-  color: #5d5648;
-}
-
-.desktop-app-button.is-settings .desktop-app-tile::before {
-  inset: 15px;
-  border-width: 2px;
-  border-radius: 999px;
-  opacity: 0.24;
+  color: #4f5b68;
 }
 
 .desktop-app-icon {
@@ -430,23 +273,12 @@ button {
 .desktop-app-label {
   overflow: hidden;
   max-width: 76px;
-  color: rgba(29, 29, 29, 0.76);
+  color: rgba(22, 48, 68, 0.76);
   font-size: 11px;
   line-height: 1.15;
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.desktop-home-indicator {
-  position: relative;
-  z-index: 2;
-  display: block;
-  width: 54px;
-  height: 5px;
-  margin: auto auto 0;
-  border-radius: 999px;
-  background: rgba(29, 29, 29, 0.25);
 }
 
 .home-screen {
