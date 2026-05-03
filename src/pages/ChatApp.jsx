@@ -58,7 +58,7 @@ function isEditableTarget(target) {
   return Boolean(target?.closest?.('input, textarea, select, [contenteditable="true"]'));
 }
 
-export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledActiveApp, onChangeApp, onCloseApp }) {
+export function ChatApp({ initialApp = 'messages', activeApp: controlledActiveApp, onChangeApp, onCloseApp }) {
   const [contacts, setContacts] = useState(INITIAL_CONTACTS);
   const [contactGroups, setContactGroups] = useState(DEFAULT_CONTACT_GROUPS);
   const [threads, setThreads] = useState(createInitialThreads);

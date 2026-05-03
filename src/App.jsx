@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Live2LoveApp } from './pages/Live2LoveApp.jsx';
+import { ChatApp } from './pages/ChatApp.jsx';
 import { PhoneDesktop } from './shell/PhoneDesktop.jsx';
 
 const appUrl = (path = '') => `${import.meta.env.BASE_URL}${path}`;
@@ -68,5 +68,5 @@ export default function App() {
     return <PhoneDesktop onOpenApp={openApp} />;
   }
 
-  return <Live2LoveApp initialApp={routeApp} activeApp={routeApp} onChangeApp={openApp} onCloseApp={closeApp} />;
+  return <ChatApp initialApp={routeApp} activeApp={routeApp} onChangeApp={openApp} onCloseApp={closeApp} />;
 }
