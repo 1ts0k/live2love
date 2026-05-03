@@ -221,7 +221,13 @@ export function SettingsView({
 
           <label className="settings-field">
             <span>上传全局字体</span>
-            <input className="settings-file-input" type="file" accept={SUPPORTED_FONT_ACCEPT} onChange={handleFontUpload} />
+            <span className="settings-file-picker">
+              <input className="settings-file-input" type="file" accept={SUPPORTED_FONT_ACCEPT} onChange={handleFontUpload} />
+              <span className="settings-file-picker-content">
+                <Icon name="upload" className="settings-file-picker-icon" />
+                选择字体文件
+              </span>
+            </span>
             <small>支持 WOFF2、WOFF、TTF、OTF，最大 20MB。默认直接使用 iPhone 系统字体。</small>
           </label>
 

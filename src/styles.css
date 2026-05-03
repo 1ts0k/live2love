@@ -285,9 +285,9 @@ button {
   position: relative;
   z-index: 2;
   display: grid;
-  width: max-content;
-  grid-template-columns: repeat(3, 70px);
-  gap: 18px;
+  width: min(100%, 318px);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px 8px;
   margin: 62px auto 0;
   padding: 0;
 }
@@ -308,43 +308,123 @@ button {
 }
 
 .desktop-app-tile {
+  position: relative;
   display: inline-flex;
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(29, 29, 29, 0.08);
-  border-radius: 18px;
-  background: rgba(254, 254, 254, 0.58);
-  box-shadow: 0 8px 20px rgba(76, 66, 48, 0.08);
-  transition: transform 0.18s ease, background 0.18s ease;
+  overflow: hidden;
+  border: 1px solid rgba(29, 29, 29, 0.1);
+  border-radius: 17px;
+  background:
+    linear-gradient(160deg, rgba(254, 254, 254, 0.74), rgba(241, 232, 213, 0.56)),
+    #f3ead7;
+  box-shadow:
+    0 12px 24px rgba(76, 66, 48, 0.12),
+    inset 0 1px 0 rgba(254, 254, 254, 0.82);
+  transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.desktop-app-tile::before,
+.desktop-app-tile::after {
+  position: absolute;
+  content: '';
+  pointer-events: none;
+}
+
+.desktop-app-tile::before {
+  inset: 10px;
+  border: 1px solid currentColor;
+  border-radius: 13px;
+  opacity: 0.18;
+}
+
+.desktop-app-tile::after {
+  right: 10px;
+  bottom: 9px;
+  width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.16;
 }
 
 .desktop-app-button.is-chat .desktop-app-tile {
   background:
-    linear-gradient(145deg, rgba(141, 164, 183, 0.92), rgba(215, 187, 171, 0.78)),
-    #dce6ed;
-  color: #17242b;
+    radial-gradient(circle at 72% 24%, rgba(254, 254, 254, 0.52), transparent 29%),
+    linear-gradient(145deg, #8da4b7, #d7bbab);
+  color: #10202d;
+}
+
+.desktop-app-button.is-chat .desktop-app-tile::before {
+  inset: 14px 12px 16px;
+  border-radius: 12px 12px 12px 5px;
+  background: rgba(254, 254, 254, 0.28);
+  opacity: 1;
+}
+
+.desktop-app-button.is-contacts .desktop-app-tile {
+  background:
+    radial-gradient(circle at 68% 22%, rgba(254, 254, 254, 0.5), transparent 28%),
+    linear-gradient(145deg, #a5b9a5, #cec0df);
+  color: #243424;
+}
+
+.desktop-app-button.is-contacts .desktop-app-tile::before {
+  inset: 13px 17px 23px;
+  border-radius: 999px;
+  background: rgba(254, 254, 254, 0.32);
+  opacity: 1;
+}
+
+.desktop-app-button.is-contacts .desktop-app-tile::after {
+  right: 17px;
+  bottom: 13px;
+  width: 26px;
+  height: 12px;
+  border-radius: 999px 999px 8px 8px;
+  background: currentColor;
+  opacity: 0.16;
 }
 
 .desktop-app-button.is-worldbook .desktop-app-tile {
   background:
-    linear-gradient(145deg, rgba(var(--l2l-primary-rgb), 0.9), rgba(239, 226, 198, 0.78)),
-    var(--l2l-primary-soft);
-  color: var(--l2l-on-selected);
+    radial-gradient(circle at 76% 20%, rgba(254, 254, 254, 0.54), transparent 30%),
+    linear-gradient(145deg, #cfb992, #8da4b7);
+  color: #2e2a20;
+}
+
+.desktop-app-button.is-worldbook .desktop-app-tile::before {
+  inset: 11px 15px;
+  border-radius: 8px;
+  border-left-color: transparent;
+  background:
+    linear-gradient(90deg, transparent 48%, rgba(46, 42, 32, 0.18) 49% 51%, transparent 52%),
+    rgba(254, 254, 254, 0.25);
+  opacity: 1;
 }
 
 .desktop-app-button.is-settings .desktop-app-tile {
   background:
-    linear-gradient(145deg, rgba(239, 226, 198, 0.88), rgba(254, 254, 254, 0.58)),
-    #f4ead4;
+    radial-gradient(circle at 72% 22%, rgba(254, 254, 254, 0.52), transparent 28%),
+    linear-gradient(145deg, #efe2c6, #d8d3c9);
   color: #5d5648;
 }
 
+.desktop-app-button.is-settings .desktop-app-tile::before {
+  inset: 15px;
+  border-width: 2px;
+  border-radius: 999px;
+  opacity: 0.24;
+}
+
 .desktop-app-icon {
+  position: relative;
+  z-index: 2;
   width: 23px;
   height: 23px;
-  stroke-width: 1.65;
+  stroke-width: 1.9;
 }
 
 .desktop-app-label {
@@ -2017,9 +2097,62 @@ button {
   white-space: nowrap;
 }
 
-.settings-file-input {
-  padding: 10px 0;
-  color: var(--l2l-muted);
+.app-screen .settings-file-input {
+  position: absolute;
+  width: 1px;
+  min-width: 1px;
+  height: 1px;
+  min-height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.settings-file-picker {
+  position: relative;
+  display: inline-flex;
+  width: 100%;
+  min-height: var(--l2l-tap-min);
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--l2l-border);
+  border-radius: 11px;
+  background: rgba(254, 254, 254, 0.9);
+  color: var(--l2l-primary-deep);
+  padding: 0 12px;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.settings-file-picker:hover {
+  border-color: rgba(var(--l2l-primary-rgb), 0.5);
+  background: rgba(254, 254, 254, 0.98);
+  transform: translateY(-1px);
+}
+
+.settings-file-picker:focus-within {
+  border-color: rgba(var(--l2l-primary-rgb), 0.7);
+  box-shadow: 0 0 0 3px rgba(var(--l2l-primary-rgb), 0.14);
+}
+
+.settings-file-picker-content {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 700 !important;
+  line-height: 1;
+  text-align: center;
+}
+
+.settings-file-picker-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  stroke-width: 1.9;
 }
 
 .settings-group-heading {
@@ -2855,7 +2988,7 @@ button {
   flex: 0 0 auto;
   justify-content: flex-start;
   overflow: visible;
-  padding: 0 10px 2px;
+  padding: 12px 10px 4px;
   pointer-events: auto;
 }
 
@@ -3629,20 +3762,22 @@ button {
 
 .contacts-row.is-pinned-flow .avatar-item {
   max-width: none;
-  min-height: 88px;
+  min-height: 102px;
   flex: none;
 }
 
 .contacts-row.is-pinned-flow .avatar-button {
-  min-height: 88px;
+  min-height: 102px;
 }
 
 .contacts-row.is-pinned-flow .avatar-frame {
-  width: 52px;
-  height: 52px;
+  width: var(--contact-avatar-size);
+  height: var(--contact-avatar-size);
 }
 
 .contacts-row.is-wall {
+  --contact-avatar-size: clamp(58px, 15vw, 66px);
+
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: start;
@@ -3653,19 +3788,19 @@ button {
 
 .contacts-row.is-wall .avatar-item {
   max-width: none;
-  min-height: 88px;
+  min-height: 102px;
   flex: none;
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
 
 .contacts-row.is-wall .avatar-button {
-  min-height: 88px;
+  min-height: 102px;
 }
 
 .contacts-row.is-wall .avatar-frame {
-  width: 52px;
-  height: 52px;
+  width: var(--contact-avatar-size);
+  height: var(--contact-avatar-size);
 }
 
 .avatar-item {
@@ -3745,8 +3880,8 @@ button {
   position: relative;
   z-index: 1;
   display: block;
-  width: clamp(50px, 14vw, 60px);
-  height: clamp(50px, 14vw, 60px);
+  width: var(--contact-avatar-size, clamp(58px, 15vw, 66px));
+  height: var(--contact-avatar-size, clamp(58px, 15vw, 66px));
   border: 2px solid transparent;
   border-radius: 999px;
   background: var(--l2l-bg);
@@ -4047,7 +4182,7 @@ button {
   justify-content: space-between;
   gap: 14px;
   margin: 0 -24px;
-  padding: calc(10px + env(safe-area-inset-top)) 24px 6px;
+  padding: calc(12px + env(safe-area-inset-top)) 24px 12px;
   background:
     linear-gradient(
       180deg,
@@ -4179,8 +4314,8 @@ button {
   position: relative;
   z-index: 1;
   width: auto;
-  height: clamp(184px, 50vw, 212px);
-  margin: -2px -12px 10px;
+  height: clamp(176px, 48vw, 206px);
+  margin: 6px -12px 12px;
   overflow: visible;
   border: 0;
   border-radius: 0;

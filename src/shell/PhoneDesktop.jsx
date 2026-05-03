@@ -1,7 +1,8 @@
 import { Icon } from '../components/Icon.jsx';
 
 const DESKTOP_APPS = [
-  { id: 'chat', label: '聊天', icon: 'heart', app: 'messages', className: 'is-chat' },
+  { id: 'chat', label: '聊天', icon: 'message', app: 'messages', className: 'is-chat' },
+  { id: 'contacts', label: '联系人', icon: 'user', app: 'contacts', className: 'is-contacts' },
   { id: 'worldbook', label: '世界书', icon: 'bookOpen', app: 'worldbook', className: 'is-worldbook' },
   { id: 'settings', label: '设置', icon: 'settings', app: 'settings', className: 'is-settings' },
 ];
