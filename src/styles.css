@@ -58,6 +58,7 @@ body {
   color: var(--l2l-text);
   font-family: var(--l2l-font-ui);
   font-synthesis-weight: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button,
@@ -70,6 +71,25 @@ textarea {
 button {
   border: 0;
   cursor: pointer;
+  touch-action: manipulation;
+}
+
+.app-screen {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.app-screen :where(input, textarea, select, [contenteditable="true"]) {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.app-screen img,
+.app-screen svg {
+  -webkit-user-drag: none;
+  user-drag: none;
 }
 
 .app-screen :where(h1, h2, h3, h4, p, span, time, button, input, select, textarea, label, dt, dd, small, strong, b) {
@@ -105,116 +125,6 @@ button {
     inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
-.phone-status-bar {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  z-index: 60;
-  display: grid;
-  height: 32px;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-  padding: 8px 18px 0;
-  color: rgba(29, 29, 29, 0.76);
-  font-size: 11px;
-  line-height: 1;
-  pointer-events: none;
-}
-
-.phone-status-bar time {
-  justify-self: start;
-  font-variant-numeric: tabular-nums;
-}
-
-.phone-status-app {
-  display: inline-flex;
-  max-width: 112px;
-  min-width: 0;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(254, 254, 254, 0.58);
-  color: rgba(29, 29, 29, 0.68);
-  padding: 4px 9px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  pointer-events: auto;
-}
-
-button.phone-status-app:hover {
-  background: rgba(29, 29, 29, 0.08);
-  color: var(--l2l-text);
-}
-
-button.phone-status-app:focus-visible {
-  outline: 2px solid rgba(var(--l2l-primary-rgb), 0.8);
-  outline-offset: 2px;
-}
-
-.phone-status-signals {
-  display: inline-flex;
-  justify-self: end;
-  align-items: center;
-  gap: 5px;
-}
-
-.phone-signal-bars {
-  display: inline-flex;
-  height: 9px;
-  align-items: end;
-  gap: 2px;
-}
-
-.phone-signal-bars i {
-  display: block;
-  width: 2px;
-  border-radius: 2px;
-  background: currentColor;
-}
-
-.phone-signal-bars i:nth-child(1) {
-  height: 4px;
-}
-
-.phone-signal-bars i:nth-child(2) {
-  height: 6px;
-}
-
-.phone-signal-bars i:nth-child(3) {
-  height: 8px;
-}
-
-.phone-battery {
-  position: relative;
-  display: inline-block;
-  width: 18px;
-  height: 9px;
-  border: 1px solid currentColor;
-  border-radius: 3px;
-}
-
-.phone-battery::before {
-  position: absolute;
-  inset: 2px 5px 2px 2px;
-  border-radius: 1px;
-  background: currentColor;
-  content: '';
-}
-
-.phone-battery::after {
-  position: absolute;
-  top: 2px;
-  right: -3px;
-  width: 2px;
-  height: 3px;
-  border-radius: 0 2px 2px 0;
-  background: currentColor;
-  content: '';
-}
-
 .phone-home-handle {
   position: absolute;
   right: 50%;
@@ -239,7 +149,7 @@ button.phone-status-app:focus-visible {
 .phone-desktop-screen {
   display: flex;
   flex-direction: column;
-  padding: 46px 18px 16px;
+  padding: 28px 18px 16px;
   background:
     linear-gradient(120deg, rgba(254, 254, 254, 0.64), rgba(240, 234, 222, 0.3)),
     repeating-linear-gradient(0deg, rgba(29, 29, 29, 0.025) 0 1px, transparent 1px 6px),
@@ -495,12 +405,12 @@ button.phone-status-app:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 36px 24px 8px;
+  padding: 24px 24px 8px;
 }
 
 .contacts-header {
   z-index: 5;
-  padding: 36px 24px 4px;
+  padding: 24px 24px 4px;
 }
 
 .contacts-header .home-title {
@@ -566,16 +476,16 @@ button.phone-status-app:focus-visible {
   flex: 1;
   flex-direction: column;
   overflow: hidden;
-  padding: 34px 18px 10px;
+  padding: 22px 20px 12px;
   color: var(--l2l-text);
 }
 
 .messages-list-header {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
-  gap: 8px;
-  padding: 0 8px 10px;
+  gap: 10px;
+  padding: 0 2px 14px;
 }
 
 .messages-list-header h1,
@@ -590,7 +500,7 @@ button.phone-status-app:focus-visible {
 .messages-list-header h1 {
   grid-column: 2;
   justify-self: center;
-  font-size: 22px;
+  font-size: 26px;
 }
 
 .messages-compose-button,
@@ -630,16 +540,16 @@ button.phone-status-app:focus-visible {
 .messages-compose-button {
   grid-column: 3;
   justify-self: end;
-  width: 32px;
-  height: 32px;
+  width: 42px;
+  height: 42px;
   box-shadow: 0 1px 8px rgba(45, 39, 31, 0.08);
 }
 
 .messages-home-button {
   grid-column: 1;
   justify-self: start;
-  width: 32px;
-  height: 32px;
+  width: 42px;
+  height: 42px;
   box-shadow: 0 1px 8px rgba(45, 39, 31, 0.08);
 }
 
@@ -647,23 +557,23 @@ button.phone-status-app:focus-visible {
 .messages-header-icon,
 .composer-icon,
 .messages-search-icon {
-  width: 16px;
-  height: 16px;
+  width: 19px;
+  height: 19px;
   flex: 0 0 auto;
   stroke-width: 1.8;
 }
 
 .messages-search {
   display: flex;
-  min-height: 34px;
+  min-height: 44px;
   align-items: center;
   gap: 8px;
-  margin: 0 10px 8px;
+  margin: 0 2px 12px;
   border: 1px solid var(--l2l-border);
   border-radius: 11px;
   background: rgba(254, 254, 254, 0.72);
   color: var(--l2l-muted);
-  padding: 0 10px;
+  padding: 0 13px;
 }
 
 .messages-search input {
@@ -673,7 +583,7 @@ button.phone-status-app:focus-visible {
   background: transparent;
   color: var(--l2l-text);
   outline: none;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 650;
 }
 
@@ -701,14 +611,14 @@ button.phone-status-app:focus-visible {
   position: relative;
   display: grid;
   width: 100%;
-  min-height: 66px;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
+  min-height: 78px;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   border-radius: 8px;
   background: transparent;
   color: inherit;
-  padding: 7px 8px;
+  padding: 9px 8px;
   text-align: left;
   transition: background 0.18s ease, transform 0.18s ease;
 }
@@ -717,7 +627,7 @@ button.phone-status-app:focus-visible {
   position: absolute;
   right: 8px;
   bottom: 0;
-  left: 64px;
+  left: 76px;
   height: 1px;
   background: var(--l2l-list-divider);
   content: '';
@@ -748,9 +658,9 @@ button.phone-status-app:focus-visible {
 }
 
 .conversation-avatar {
-  width: 42px;
-  height: 42px;
-  font-size: 15px;
+  width: 52px;
+  height: 52px;
+  font-size: 18px;
 }
 
 .conversation-avatar img,
@@ -778,7 +688,7 @@ button.phone-status-app:focus-visible {
 .conversation-name {
   overflow: hidden;
   color: var(--l2l-text);
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 800;
   line-height: 1.15;
   text-overflow: ellipsis;
@@ -788,7 +698,7 @@ button.phone-status-app:focus-visible {
 .conversation-topline time {
   flex: 0 0 auto;
   color: var(--l2l-soft);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -796,7 +706,7 @@ button.phone-status-app:focus-visible {
   display: -webkit-box;
   overflow: hidden;
   color: var(--l2l-muted);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 620;
   line-height: 1.35;
   -webkit-box-orient: vertical;
@@ -805,14 +715,14 @@ button.phone-status-app:focus-visible {
 
 .conversation-unread {
   display: inline-flex;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
   background: var(--l2l-primary);
   color: var(--l2l-on-primary);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 850;
 }
 
@@ -832,8 +742,8 @@ button.phone-status-app:focus-visible {
 }
 
 .messages-icon-button {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
 }
 
 .messages-chat-avatar {
@@ -995,50 +905,6 @@ button.phone-status-app:focus-visible {
   background: oklch(98.8% 0.002 255);
 }
 
-.has-chat-thread .phone-status-bar {
-  height: 44px;
-  padding: 13px 38px 0;
-  color: oklch(14% 0.006 255);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.has-chat-thread .phone-status-app {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.has-chat-thread .phone-status-signals {
-  gap: 6px;
-}
-
-.has-chat-thread .phone-signal-bars {
-  height: 10px;
-  gap: 2px;
-}
-
-.has-chat-thread .phone-signal-bars i {
-  width: 2px;
-}
-
-.has-chat-thread .phone-signal-bars i:nth-child(1) {
-  height: 4px;
-}
-
-.has-chat-thread .phone-signal-bars i:nth-child(2) {
-  height: 7px;
-}
-
-.has-chat-thread .phone-signal-bars i:nth-child(3) {
-  height: 10px;
-}
-
-.has-chat-thread .phone-battery {
-  width: 21px;
-  height: 10px;
-  border-radius: 4px;
-}
-
 .messages-chat-view {
   --im-screen: oklch(98.8% 0.002 255);
   --im-ink: oklch(15% 0.006 255);
@@ -1049,9 +915,9 @@ button.phone-status-app:focus-visible {
   --im-grey: oklch(91.7% 0.003 255);
   --im-blue: oklch(67% 0.165 238);
   --im-blue-deep: oklch(61% 0.18 242);
-  --chat-contact-avatar-size: min(58px, 6.87dvh);
-  --chat-contact-name-height: min(34px, 4.04dvh);
-  --chat-contact-name-overlap: min(8px, 0.95dvh);
+  --chat-contact-avatar-size: clamp(56px, 8dvh, 66px);
+  --chat-contact-name-height: clamp(36px, 5dvh, 42px);
+  --chat-contact-name-overlap: 9px;
   --chat-contact-height: calc(var(--chat-contact-avatar-size) + var(--chat-contact-name-height) - var(--chat-contact-name-overlap));
 
   position: relative;
@@ -1074,18 +940,18 @@ button.phone-status-app:focus-visible {
   position: relative;
   z-index: 3;
   display: grid;
-  min-height: 132px;
+  min-height: 122px;
   grid-template-columns: 48px minmax(0, 1fr) 48px;
   align-items: start;
   gap: 10px;
-  padding: 62px 22px 4px;
+  padding: calc(24px + env(safe-area-inset-top)) 20px 8px;
   border-bottom: 0;
   background: transparent;
 }
 
 .messages-chat-view .messages-icon-button {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 999px;
   background: var(--im-control);
@@ -1112,8 +978,8 @@ button.phone-status-app:focus-visible {
 }
 
 .messages-chat-view .messages-header-icon {
-  width: 23px;
-  height: 23px;
+  width: 24px;
+  height: 24px;
   stroke-width: 2.15;
 }
 
@@ -1152,7 +1018,7 @@ button.phone-status-app:focus-visible {
   z-index: 1;
   display: inline-flex;
   min-width: 0;
-  max-width: 154px;
+  max-width: 184px;
   height: var(--chat-contact-name-height);
   min-height: 0;
   align-items: center;
@@ -1164,7 +1030,7 @@ button.phone-status-app:focus-visible {
   color: var(--im-ink);
   font-weight: 800;
   box-shadow: 0 14px 24px oklch(42% 0.02 255 / 0.1);
-  padding: 6px 11px 0 14px;
+  padding: 7px 13px 0 15px;
 }
 
 .messages-chat-view .messages-chat-title h1 {
@@ -1172,7 +1038,7 @@ button.phone-status-app:focus-visible {
   margin: 0;
   color: inherit;
   font-family: "L2L PingFang SC Bold", "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 700 !important;
   line-height: 1;
   text-shadow: none;
@@ -1191,8 +1057,8 @@ button.phone-status-app:focus-visible {
 .messages-chat-view .messages-thread {
   position: relative;
   z-index: 1;
-  gap: 7px;
-  padding: 0 22px 14px;
+  gap: 8px;
+  padding: 4px 20px 16px;
 }
 
 .message-cluster {
@@ -1227,12 +1093,12 @@ button.phone-status-app:focus-visible {
 
 .messages-chat-view .message-bubble {
   position: relative;
-  max-width: min(76%, 264px);
+  max-width: min(82%, 320px);
   border: 0;
   border-radius: 18px;
   background: var(--im-grey);
   color: var(--im-ink);
-  padding: 8px 13px 8px;
+  padding: 10px 14px 10px;
   box-shadow: none;
 }
 
@@ -1287,7 +1153,7 @@ button.phone-status-app:focus-visible {
 
 .messages-chat-view .message-bubble p {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 400 !important;
   line-height: 1.34;
   letter-spacing: 0;
@@ -1337,17 +1203,17 @@ button.phone-status-app:focus-visible {
   position: relative;
   z-index: 4;
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: 46px minmax(0, 1fr);
   align-items: center;
   gap: 11px;
   border-top: 0;
   background: linear-gradient(180deg, oklch(98.8% 0.002 255 / 0), oklch(98.8% 0.002 255 / 0.98) 22%);
-  padding: 10px 23px calc(14px + env(safe-area-inset-bottom)) 22px;
+  padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
 }
 
 .messages-chat-view .composer-tool {
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
   border: 0;
   border-radius: 999px;
   background: var(--im-control);
@@ -1363,8 +1229,8 @@ button.phone-status-app:focus-visible {
 }
 
 .messages-chat-view .composer-tool .composer-icon {
-  width: 25px;
-  height: 25px;
+  width: 26px;
+  height: 26px;
   stroke-width: 1.9;
 }
 
@@ -1372,7 +1238,7 @@ button.phone-status-app:focus-visible {
   position: relative;
   display: flex;
   min-width: 0;
-  min-height: 42px;
+  min-height: 48px;
   align-items: center;
   border-radius: 999px;
   background: var(--im-input);
@@ -1384,14 +1250,14 @@ button.phone-status-app:focus-visible {
 .messages-chat-view .message-composer input {
   width: 100%;
   min-width: 0;
-  min-height: 42px;
+  min-height: 48px;
   border: 0;
   border-radius: inherit;
   background: transparent;
   color: var(--im-ink);
   outline: none;
-  padding: 0 50px 0 17px;
-  font-size: 16px;
+  padding: 0 54px 0 18px;
+  font-size: 17px;
   font-weight: 400 !important;
 }
 
@@ -1409,8 +1275,8 @@ button.phone-status-app:focus-visible {
   top: 50%;
   right: 6px;
   display: inline-flex;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   align-items: center;
   justify-content: center;
   border: 0;
@@ -1475,8 +1341,8 @@ button.phone-status-app:focus-visible {
 }
 
 .messages-chat-view .composer-send .composer-icon {
-  width: 18px;
-  height: 18px;
+  width: 19px;
+  height: 19px;
   stroke-width: 2.1;
 }
 
@@ -1492,14 +1358,14 @@ button.phone-status-app:focus-visible {
   overflow: hidden;
   background: oklch(96.8% 0.003 255);
   color: oklch(15% 0.006 255);
-  padding: 54px 16px 18px;
+  padding: calc(22px + env(safe-area-inset-top)) 18px 18px;
 }
 
 .chat-detail-view .messages-icon-button,
 .chat-search-view .messages-icon-button,
 .chat-beautify-view .messages-icon-button {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 999px;
   background: oklch(99% 0.002 255);
@@ -1533,14 +1399,14 @@ button.phone-status-app:focus-visible {
 .chat-detail-view .messages-header-icon,
 .chat-search-view .messages-header-icon,
 .chat-beautify-view .messages-header-icon {
-  width: 20px;
-  height: 20px;
+  width: 23px;
+  height: 23px;
   stroke-width: 2.05;
 }
 
 .chat-subpage-header {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
   gap: 8px;
   padding: 0 0 14px;
@@ -1550,7 +1416,7 @@ button.phone-status-app:focus-visible {
   overflow: hidden;
   margin: 0;
   color: oklch(16% 0.006 255);
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 650 !important;
   line-height: 1;
   text-align: center;
@@ -1583,7 +1449,7 @@ button.phone-status-app:focus-visible {
 
 .chat-detail-row {
   display: grid;
-  min-height: 54px;
+  min-height: 60px;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
@@ -1592,8 +1458,8 @@ button.phone-status-app:focus-visible {
 }
 
 .chat-detail-profile-row {
-  min-height: 68px;
-  grid-template-columns: 46px minmax(0, 1fr) auto;
+  min-height: 76px;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
 }
 
 .chat-detail-row:hover {
@@ -1602,15 +1468,15 @@ button.phone-status-app:focus-visible {
 
 .chat-detail-avatar {
   display: inline-flex;
-  width: 46px;
-  height: 46px;
+  width: 52px;
+  height: 52px;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   border-radius: 999px;
   background: oklch(91.5% 0.01 255);
   color: oklch(34% 0.025 255);
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 650 !important;
 }
 
@@ -1629,7 +1495,7 @@ button.phone-status-app:focus-visible {
 .chat-detail-row-title {
   overflow: hidden;
   color: oklch(16% 0.006 255);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500 !important;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -2052,7 +1918,7 @@ button.phone-status-app:focus-visible {
   flex: 1;
   flex-direction: column;
   overflow: hidden;
-  padding: 34px 18px 10px;
+  padding: 22px 18px 10px;
   color: var(--l2l-text);
 }
 
@@ -2319,7 +2185,7 @@ button.phone-status-app:focus-visible {
   flex: 1;
   flex-direction: column;
   overflow: hidden;
-  padding: 34px 18px 10px;
+  padding: 22px 18px 10px;
   color: var(--l2l-text);
 }
 
@@ -3564,17 +3430,17 @@ button.phone-status-app:focus-visible {
 
 .contacts-row.is-pinned-flow .avatar-item {
   max-width: none;
-  min-height: 78px;
+  min-height: 88px;
   flex: none;
 }
 
 .contacts-row.is-pinned-flow .avatar-button {
-  min-height: 78px;
+  min-height: 88px;
 }
 
 .contacts-row.is-pinned-flow .avatar-frame {
-  width: 46px;
-  height: 46px;
+  width: 52px;
+  height: 52px;
 }
 
 .contacts-row.is-wall {
@@ -3588,27 +3454,27 @@ button.phone-status-app:focus-visible {
 
 .contacts-row.is-wall .avatar-item {
   max-width: none;
-  min-height: 78px;
+  min-height: 88px;
   flex: none;
   scroll-snap-align: start;
   scroll-snap-stop: always;
 }
 
 .contacts-row.is-wall .avatar-button {
-  min-height: 78px;
+  min-height: 88px;
 }
 
 .contacts-row.is-wall .avatar-frame {
-  width: 46px;
-  height: 46px;
+  width: 52px;
+  height: 52px;
 }
 
 .avatar-item {
   position: relative;
   display: flex;
   min-width: 0;
-  max-width: 72px;
-  min-height: 88px;
+  max-width: 78px;
+  min-height: 96px;
   flex: 1 1 0;
   justify-content: center;
 }
@@ -3628,7 +3494,7 @@ button.phone-status-app:focus-visible {
   display: flex;
   width: 100%;
   min-width: 0;
-  min-height: 88px;
+  min-height: 96px;
   flex: 1 1 auto;
   flex-direction: column;
   align-items: center;
@@ -3680,8 +3546,8 @@ button.phone-status-app:focus-visible {
   position: relative;
   z-index: 1;
   display: block;
-  width: clamp(38px, 11.5vw, 54px);
-  height: clamp(38px, 11.5vw, 54px);
+  width: clamp(50px, 14vw, 60px);
+  height: clamp(50px, 14vw, 60px);
   border: 2px solid transparent;
   border-radius: 999px;
   background: var(--l2l-bg);
@@ -3778,7 +3644,7 @@ button.phone-status-app:focus-visible {
   max-width: 100%;
   margin-top: 8px;
   color: var(--l2l-muted);
-  font-size: clamp(10px, 2.8vw, 12px);
+  font-size: 13px;
   font-weight: 700;
   text-overflow: ellipsis;
   transition: color 0.3s ease;
@@ -4631,7 +4497,7 @@ button.phone-status-app:focus-visible {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 2px;
-  padding: 5px 14px calc(14px + env(safe-area-inset-bottom));
+  padding: 7px 14px calc(16px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--l2l-border);
   background: var(--l2l-paper);
   box-shadow: 0 -8px 20px rgba(45, 39, 31, 0.05);
@@ -4757,7 +4623,7 @@ button.phone-status-app:focus-visible {
 .app-menu-item {
   display: flex;
   min-width: 0;
-  min-height: 38px;
+  min-height: 46px;
   align-items: center;
   justify-content: center;
   border-radius: 10px;
@@ -4787,8 +4653,8 @@ button.phone-status-app:focus-visible {
 }
 
 .app-menu-icon {
-  width: 18px;
-  height: 18px;
+  width: 21px;
+  height: 21px;
   flex: 0 0 auto;
   stroke-width: 1.5;
 }

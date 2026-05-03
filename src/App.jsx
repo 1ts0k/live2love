@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { Live2LoveApp } from './pages/Live2LoveApp.jsx';
 import { PhoneDesktop } from './shell/PhoneDesktop.jsx';
 
+const appUrl = (path = '') => `${import.meta.env.BASE_URL}${path}`;
+
 const APP_ROUTES = {
-  contacts: '/contacts.html',
-  messages: '/messages.html',
-  worldbook: '/worldbook.html',
-  settings: '/contacts.html#settings',
+  contacts: appUrl('contacts.html'),
+  messages: appUrl('messages.html'),
+  worldbook: appUrl('worldbook.html'),
+  settings: appUrl('contacts.html#settings'),
 };
 
 function getRouteApp() {
@@ -55,8 +57,8 @@ export default function App() {
   const closeApp = () => {
     const currentUrl = `${window.location.pathname}${window.location.hash}`;
 
-    if (currentUrl !== '/') {
-      window.history.pushState({ screen: 'desktop' }, '', '/');
+    if (currentUrl !== import.meta.env.BASE_URL) {
+      window.history.pushState({ screen: 'desktop' }, '', import.meta.env.BASE_URL);
     }
 
     setRouteApp(null);

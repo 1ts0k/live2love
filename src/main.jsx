@@ -8,7 +8,7 @@ const shouldRegisterServiceWorker =
 
 if (shouldRegisterServiceWorker) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js').catch((error) => {
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}service-worker.js`).catch((error) => {
       console.warn('live2love service worker registration failed:', error);
     });
   });

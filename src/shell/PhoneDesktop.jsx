@@ -1,5 +1,4 @@
 import { Icon } from '../components/Icon.jsx';
-import { PhoneStatusBar } from './PhoneStatusBar.jsx';
 
 const DESKTOP_APPS = [
   { id: 'chat', label: '聊天', icon: 'heart', app: 'messages', className: 'is-chat' },
@@ -10,9 +9,12 @@ const DESKTOP_APPS = [
 export function PhoneDesktop({ onOpenApp }) {
   return (
     <main className="app-main">
-      <section className="app-screen phone-desktop-screen" aria-label="仿手机桌面">
-        <PhoneStatusBar label="private phone" />
-
+      <section
+        className="app-screen phone-desktop-screen"
+        aria-label="仿手机桌面"
+        onContextMenu={(event) => event.preventDefault()}
+        onDragStart={(event) => event.preventDefault()}
+      >
         <div className="desktop-wallpaper" aria-hidden="true">
           <span className="desktop-map-line desktop-map-line-a" />
           <span className="desktop-map-line desktop-map-line-b" />

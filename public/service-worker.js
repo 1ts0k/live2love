@@ -1,16 +1,17 @@
-const CACHE_VERSION = 'live2love-vite-v11';
+const CACHE_VERSION = 'live2love-vite-v12';
+const fromScope = (path) => new URL(path, self.registration.scope).toString();
 const APP_SHELL = [
-  '/contacts.html',
-  '/messages.html',
-  '/worldbook.html',
-  '/offline.html',
-  '/manifest.webmanifest',
-  '/assets/icons/icon.svg',
-  '/assets/icons/icon-maskable.svg',
-  '/assets/icons/icon-192.png',
-  '/assets/icons/icon-512.png',
-  '/assets/icons/icon-maskable-512.png',
-];
+  'contacts.html',
+  'messages.html',
+  'worldbook.html',
+  'offline.html',
+  'manifest.webmanifest',
+  'assets/icons/icon.svg',
+  'assets/icons/icon-maskable.svg',
+  'assets/icons/icon-192.png',
+  'assets/icons/icon-512.png',
+  'assets/icons/icon-maskable-512.png',
+].map(fromScope);
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL)));
@@ -36,7 +37,7 @@ async function networkFirstNavigation(request) {
     }
     return response;
   } catch {
-    return (await cache.match(request)) || (await cache.match('/offline.html'));
+    return (await cache.match(request)) || (await cache.match(fromScope('offline.html')));
   }
 }
 

@@ -39,7 +39,6 @@ import {
   saveWorldBooks,
 } from '../services/localBackend.js';
 import { AppMenuBar } from '../shell/AppMenuBar.jsx';
-import { PhoneStatusBar } from '../shell/PhoneStatusBar.jsx';
 import { runViewTransition } from '../utils/viewTransition.js';
 
 const MENU_ITEMS = [
@@ -54,6 +53,10 @@ const MAP_CONNECTION_TRANSITION_MS = 560;
 const USE_COMPACT_CONTACT_ROW = true;
 const ENABLE_CONTACT_DETAIL_VIEW = true;
 const USE_EXPLICIT_CONTACT_DETAIL_ENTRY = true;
+
+function isEditableTarget(target) {
+  return Boolean(target?.closest?.('input, textarea, select, [contenteditable="true"]'));
+}
 
 export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledActiveApp, onChangeApp, onCloseApp }) {
   const [contacts, setContacts] = useState(INITIAL_CONTACTS);
@@ -534,6 +537,16 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
     groupSortDragRef.current = null;
   };
 
+  const handleNativeContextMenuCapture = (event) => {
+    if (isEditableTarget(event.target)) return;
+    event.preventDefault();
+  };
+
+  const handleNativeDragStartCapture = (event) => {
+    if (isEditableTarget(event.target)) return;
+    event.preventDefault();
+  };
+
   const startMapConnectionTransition = (contactId, mode, onComplete) => {
     window.clearTimeout(transitionTimerRef.current);
     setMapConnectionTransition({ contactId, mode });
@@ -995,9 +1008,10 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
                 : '聊天 联系人'
         }
         onPointerDownCapture={handleScreenPointerDownCapture}
+        onContextMenuCapture={handleNativeContextMenuCapture}
+        onDragStartCapture={handleNativeDragStartCapture}
       >
         <HomeWallpaper />
-        <PhoneStatusBar onHome={onCloseApp} />
 
         {activeApp === 'messages' && (
           <MessagesView
