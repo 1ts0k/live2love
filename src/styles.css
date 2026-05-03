@@ -43,6 +43,7 @@
   --l2l-on-selected: #10202d;
   --l2l-map-place: #8da4b7;
   --l2l-on-primary: #10202d;
+  --l2l-tap-min: 44px;
 }
 
 * {
@@ -72,6 +73,23 @@ button {
   border: 0;
   cursor: pointer;
   touch-action: manipulation;
+}
+
+.app-screen button,
+.app-screen input:not([type="checkbox"]):not([type="radio"]),
+.app-screen select {
+  min-width: var(--l2l-tap-min);
+  min-height: var(--l2l-tap-min);
+}
+
+.app-screen textarea {
+  min-height: var(--l2l-tap-min);
+}
+
+.app-screen input[type="checkbox"],
+.app-screen input[type="radio"] {
+  min-width: 0;
+  min-height: 0;
 }
 
 .app-screen {
@@ -128,16 +146,28 @@ button {
 .phone-home-handle {
   position: absolute;
   right: 50%;
-  bottom: 5px;
+  bottom: 0;
   z-index: 70;
+  width: 96px;
+  height: var(--l2l-tap-min);
+  border-radius: 999px;
+  background: transparent;
+  transform: translateX(50%);
+}
+
+.phone-home-handle::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 54px;
   height: 5px;
   border-radius: 999px;
   background: rgba(29, 29, 29, 0.24);
-  transform: translateX(50%);
+  content: '';
+  transform: translate(-50%, -50%);
 }
 
-.phone-home-handle:hover {
+.phone-home-handle:hover::before {
   background: rgba(29, 29, 29, 0.42);
 }
 
@@ -733,7 +763,7 @@ button {
 .messages-chat-header {
   display: grid;
   min-height: 76px;
-  grid-template-columns: 36px 42px minmax(0, 1fr) 36px;
+  grid-template-columns: 44px 44px minmax(0, 1fr) 44px;
   align-items: center;
   gap: 9px;
   padding: 28px 16px 10px;
@@ -916,7 +946,7 @@ button {
   --im-blue: oklch(67% 0.165 238);
   --im-blue-deep: oklch(61% 0.18 242);
   --chat-contact-avatar-size: clamp(56px, 8dvh, 66px);
-  --chat-contact-name-height: clamp(36px, 5dvh, 42px);
+  --chat-contact-name-height: 44px;
   --chat-contact-name-overlap: 9px;
   --chat-contact-height: calc(var(--chat-contact-avatar-size) + var(--chat-contact-name-height) - var(--chat-contact-name-overlap));
 
@@ -1275,8 +1305,8 @@ button {
   top: 50%;
   right: 6px;
   display: inline-flex;
-  width: 36px;
-  height: 36px;
+  width: var(--l2l-tap-min);
+  height: var(--l2l-tap-min);
   align-items: center;
   justify-content: center;
   border: 0;
@@ -1601,7 +1631,7 @@ button {
 
 .chat-search-header {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr);
   align-items: center;
   gap: 9px;
 }
@@ -2361,7 +2391,7 @@ button {
 
 .worldbook-category-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 32px;
+  grid-template-columns: minmax(0, 1fr) 44px;
   gap: 7px;
 }
 
@@ -2494,7 +2524,7 @@ button {
 
 .worldbook-entry-top {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 32px 32px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px 44px;
   align-items: center;
   gap: 8px;
 }
@@ -2502,9 +2532,10 @@ button {
 .worldbook-switch {
   position: relative;
   display: inline-flex;
-  width: 42px;
-  height: 25px;
+  width: var(--l2l-tap-min);
+  height: var(--l2l-tap-min);
   align-items: center;
+  justify-content: center;
 }
 
 .worldbook-switch input {
@@ -3010,7 +3041,7 @@ button {
 
 .contact-group-create {
   display: grid;
-  grid-template-columns: 72px 30px;
+  grid-template-columns: 92px 44px;
   flex: 0 0 auto;
   gap: 5px;
 }
@@ -4128,7 +4159,7 @@ button {
 
 .contact-role-worldbook-category-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 32px;
+  grid-template-columns: minmax(0, 1fr) 44px;
   gap: 7px;
 }
 
@@ -4181,7 +4212,7 @@ button {
 
 .contact-role-worldbook-row {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 30px 30px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px 44px;
   align-items: center;
   gap: 7px;
 }
@@ -4189,9 +4220,10 @@ button {
 .contact-role-worldbook-switch {
   position: relative;
   display: inline-flex;
-  width: 40px;
-  height: 24px;
+  width: var(--l2l-tap-min);
+  height: var(--l2l-tap-min);
   align-items: center;
+  justify-content: center;
 }
 
 .contact-role-worldbook-switch input {
@@ -4408,7 +4440,7 @@ button {
 
 .contact-profile-toggle {
   display: flex;
-  min-height: 42px;
+  min-height: var(--l2l-tap-min);
   align-items: center;
   justify-content: space-between;
   gap: 12px;
