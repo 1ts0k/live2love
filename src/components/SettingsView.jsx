@@ -1,11 +1,29 @@
 import { useState } from 'react';
+import {
+  SUPPORTED_FONT_ACCEPT,
+  createCustomFontRecord,
+  formatFileSize,
+  validateFontFile,
+} from '../services/appearance.js';
 import { testApiConnection } from '../services/llmClient.js';
 import { Icon } from './Icon.jsx';
 
-export function SettingsView({ apiSettings, storageStatus, onApiSettingsChange, onClearApiKey, onResetThreads }) {
+export function SettingsView({
+  apiSettings,
+  storageStatus,
+  appearanceSettings,
+  customFont,
+  appearanceStatus,
+  onApiSettingsChange,
+  onAppearanceSettingsChange,
+  onCustomFontChange,
+  onClearApiKey,
+  onResetThreads,
+}) {
   const [isKeyVisible, setIsKeyVisible] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
+  const [fontNotice, setFontNotice] = useState('');
 
   const updateField = (field, value) => {
     setTestResult(null);
@@ -36,6 +54,42 @@ export function SettingsView({ apiSettings, storageStatus, onApiSettingsChange, 
     if (!window.confirm('清除后会恢复为初始示例会话，本机保存的聊天记录会被覆盖。继续吗？')) return;
     onResetThreads();
   };
+
+  const handleFontUpload = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) return;
+
+    const validation = validateFontFile(file);
+    if (!validation.ok) {
+      setFontNotice(validation.message);
+      return;
+    }
+
+    const fontRecord = createCustomFontRecord(file);
+    onCustomFontChange(fontRecord);
+    onAppearanceSettingsChange((current) => ({
+      ...current,
+      fontMode: 'custom',
+      customFontName: fontRecord.name,
+    }));
+    setFontNotice(validation.warning || `${fontRecord.name} 已设为全局字体。`);
+  };
+
+  const handleUseSystemFont = () => {
+    onCustomFontChange(null);
+    onAppearanceSettingsChange((current) => ({
+      ...current,
+      fontMode: 'system',
+      customFontName: '',
+    }));
+    setFontNotice('已恢复系统字体。');
+  };
+
+  const isCustomFontMode = appearanceSettings?.fontMode === 'custom';
+  const currentFontLabel = isCustomFontMode ? customFont?.name ?? appearanceSettings?.customFontName ?? '自定义字体' : '系统字体';
+  const customFontMeta = customFont ? `${customFont.fileName} · ${formatFileSize(customFont.size)}` : '未上传自定义字体';
 
   return (
     <section className="settings-view" aria-label="设置">
@@ -151,6 +205,34 @@ export function SettingsView({ apiSettings, storageStatus, onApiSettingsChange, 
           {testResult && (
             <p className={testResult.ok ? 'settings-result is-success' : 'settings-result is-error'}>{testResult.message}</p>
           )}
+        </section>
+
+        <section className="settings-group" aria-labelledby="appearance-settings-heading">
+          <div className="settings-group-heading">
+            <h2 id="appearance-settings-heading">外观</h2>
+            <span>本机字体</span>
+          </div>
+
+          <div className="settings-font-card">
+            <span className="settings-font-label">当前字体</span>
+            <strong>{currentFontLabel}</strong>
+            <small>{customFontMeta}</small>
+          </div>
+
+          <label className="settings-field">
+            <span>上传全局字体</span>
+            <input className="settings-file-input" type="file" accept={SUPPORTED_FONT_ACCEPT} onChange={handleFontUpload} />
+            <small>支持 WOFF2、WOFF、TTF、OTF，最大 20MB。默认直接使用 iPhone 系统字体。</small>
+          </label>
+
+          <div className="settings-actions">
+            <button type="button" className="settings-secondary-action" onClick={handleUseSystemFont} disabled={!isCustomFontMode}>
+              恢复系统字体
+            </button>
+          </div>
+
+          {fontNotice && <p className="settings-result">{fontNotice}</p>}
+          {appearanceStatus?.error && <p className="settings-result is-error">{appearanceStatus.error}</p>}
         </section>
 
         <section className="settings-group" aria-labelledby="data-settings-heading">

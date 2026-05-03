@@ -64,6 +64,45 @@ function getLandCells() {
 }
 
 const LAND_CELLS = getLandCells();
+const MAP_ROWS = MAP_GRID.length;
+const MAP_COLS = MAP_GRID[0].length;
+const FULL_VIEW_BOX = { x: 0, y: 0, width: MAP_COLS * CELL_SIZE, height: MAP_ROWS * CELL_SIZE };
+const TIME_FORMATTERS = new Map();
+
+function getCirclePath(cx, cy, radius) {
+  return `M ${cx - radius} ${cy} a ${radius} ${radius} 0 1 0 ${radius * 2} 0 a ${radius} ${radius} 0 1 0 ${-radius * 2} 0`;
+}
+
+function getStaticMapPaths() {
+  const waterPaths = new Map();
+  let landPath = '';
+
+  MAP_GRID.forEach((row, y) => {
+    row.split('').forEach((char, x) => {
+      const cx = x * CELL_SIZE + CELL_SIZE / 2;
+      const cy = y * CELL_SIZE + CELL_SIZE / 2;
+
+      if (char === 'x') {
+        landPath += getCirclePath(cx, cy, 1.8);
+        return;
+      }
+
+      const dist = Math.sqrt((x - MAP_COLS / 2) ** 2 + (y - MAP_ROWS / 2) ** 2);
+      const opacity = Math.max(0, 0.4 - (dist / 35) * 0.4);
+      if (opacity < 0.05) return;
+
+      const key = opacity.toFixed(2);
+      waterPaths.set(key, `${waterPaths.get(key) ?? ''}${getCirclePath(cx, cy, 0.6)}`);
+    });
+  });
+
+  return {
+    landPath,
+    waterPaths: [...waterPaths.entries()].map(([opacity, path]) => ({ opacity, path })),
+  };
+}
+
+const STATIC_MAP_PATHS = getStaticMapPaths();
 
 function getNearestLandCell(location) {
   let nearestCell = LAND_CELLS[0];
@@ -416,17 +455,31 @@ function formatDistance(km) {
 }
 
 function formatLocalTime(timeZone, date) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(date);
+  if (!TIME_FORMATTERS.has(timeZone)) {
+    TIME_FORMATTERS.set(
+      timeZone,
+      new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      })
+    );
+  }
+
+  const parts = TIME_FORMATTERS.get(timeZone).formatToParts(date);
   const getPart = (type) => parts.find((part) => part.type === type)?.value ?? '';
 
   return `${getPart('month')}.${getPart('day')} ${getPart('hour')}:${getPart('minute')}`;
+}
+
+function arePointsEqual(a, b) {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+
+  return Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5;
 }
 
 function getSafeContactInfoPosition(point, viewBox, forceBelow = false, preferAbove = false, options = {}) {
@@ -580,25 +633,31 @@ export function PixelWorldMap({
   onRegionContactSelect,
 }) {
   const svgRef = useRef(null);
+  const wrapperRef = useRef(null);
   const viewBoxAnimationRef = useRef(null);
   const [userAvatarPoint, setUserAvatarPoint] = useState(USER_AVATAR_FALLBACK_POINT);
   const [selectedAvatarPoint, setSelectedAvatarPoint] = useState(null);
   const [now, setNow] = useState(() => new Date());
-  const rows = MAP_GRID.length;
-  const cols = MAP_GRID[0].length;
-  const fullViewBox = { x: 0, y: 0, width: cols * CELL_SIZE, height: rows * CELL_SIZE };
-  const selectedContact =
-    selectedContactId === null ? null : contacts.find((contact) => contact.id === selectedContactId) ?? null;
+  const [isPageVisible, setIsPageVisible] = useState(() => typeof document === 'undefined' || document.visibilityState === 'visible');
+  const [isMapVisible, setIsMapVisible] = useState(true);
+  const selectedContact = useMemo(
+    () => (selectedContactId === null ? null : contacts.find((contact) => contact.id === selectedContactId) ?? null),
+    [contacts, selectedContactId]
+  );
   const selectedTransitionMode =
     selectedContact?.id && connectionTransition?.contactId === selectedContact.id ? connectionTransition.mode : null;
   const selectedPinClassName = selectedTransitionMode ? `map-pin map-pin-${selectedTransitionMode}` : 'map-pin';
   const showDistanceOverlay = Boolean(selectedContact && showUserConnection);
-  const activeLocations = [selectedContact, showUserConnection ? USER_LOCATION : null].filter(Boolean);
-  const activeViewBox = getActiveViewBox(activeLocations, fullViewBox);
+  const activeLocations = useMemo(
+    () => [selectedContact, showUserConnection ? USER_LOCATION : null].filter(Boolean),
+    [selectedContact, showUserConnection]
+  );
+  const activeViewBox = useMemo(() => getActiveViewBox(activeLocations, FULL_VIEW_BOX), [activeLocations]);
   const targetViewBoxValue = boundsToViewBox(activeViewBox);
   const [animatedViewBox, setAnimatedViewBox] = useState(activeViewBox);
   const animatedViewBoxRef = useRef(activeViewBox);
   const viewBoxValue = boundsToViewBox(animatedViewBox);
+  const shouldAnimateMap = isPageVisible && isMapVisible;
   const userPoint = getMapPoint(USER_LOCATION);
   const isMapInteractive = typeof onRegionContactSelect === 'function' && contacts.length > 0;
   const userConnectionPath = getUserConnectionPath(userAvatarPoint, userPoint);
@@ -638,9 +697,15 @@ export function PixelWorldMap({
       };
     }
   }
-  const selectedDistanceLabel = showDistanceOverlay ? formatDistance(getDistanceInKm(USER_LOCATION, selectedContact)) : '';
+  const selectedDistanceLabel = useMemo(
+    () => (showDistanceOverlay ? formatDistance(getDistanceInKm(USER_LOCATION, selectedContact)) : ''),
+    [selectedContact, showDistanceOverlay]
+  );
   const selectedLocationLabel = selectedContact ? selectedContact.placeLabel ?? selectedContact.location : '';
-  const selectedTimeLabel = selectedContact ? formatLocalTime(selectedContact.timeZone, now) : '';
+  const selectedTimeLabel = useMemo(
+    () => (selectedContact ? formatLocalTime(selectedContact.timeZone, now) : ''),
+    [now, selectedContact]
+  );
   const userLabelPreferred = isCompactDistance
     ? { x: -6, y: -9, textAnchor: 'end' }
     : { x: USER_LOCATION.labelDx, y: USER_LOCATION.labelDy, textAnchor: USER_LOCATION.anchor };
@@ -708,31 +773,35 @@ export function PixelWorldMap({
   const selectedPulseValues = isCompactDistance ? '3;8;3' : '3;14;3';
   const userPulseRadius = isCompactDistance ? 7 : 12;
   const userPulseValues = isCompactDistance ? '4;7;4' : '5;12;5';
-  const mapCells = useMemo(
-    () =>
-      MAP_GRID.flatMap((row, y) =>
-        row.split('').map((char, x) => {
-          const cx = x * CELL_SIZE + CELL_SIZE / 2;
-          const cy = y * CELL_SIZE + CELL_SIZE / 2;
-
-          if (char === 'x') {
-            return <circle key={`land-${x}-${y}`} cx={cx} cy={cy} r="1.8" fill="#D1CCC3" />;
-          }
-
-          const dist = Math.sqrt((x - cols / 2) ** 2 + (y - rows / 2) ** 2);
-          const opacity = Math.max(0, 0.4 - (dist / 35) * 0.4);
-          if (opacity < 0.05) return null;
-
-          return <circle key={`water-${x}-${y}`} cx={cx} cy={cy} r="0.6" fill="#E5E0D8" opacity={opacity.toFixed(2)} />;
-        })
-      ),
-    [cols, rows]
-  );
-
   useEffect(() => {
+    if (!selectedContact || !showSelectedLocalTime || !isPageVisible || !isMapVisible) return undefined;
     const intervalId = window.setInterval(() => setNow(new Date()), 30000);
 
     return () => window.clearInterval(intervalId);
+  }, [isMapVisible, isPageVisible, selectedContact, showSelectedLocalTime]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsPageVisible(document.visibilityState === 'visible');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper || typeof IntersectionObserver === 'undefined') return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsMapVisible(entry?.isIntersecting ?? true);
+      },
+      { threshold: 0.01 }
+    );
+
+    observer.observe(wrapper);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -744,13 +813,15 @@ export function PixelWorldMap({
     if (areBoundsEqual(fromViewBox, activeViewBox)) {
       setAnimatedViewBox(activeViewBox);
       animatedViewBoxRef.current = activeViewBox;
+      svgRef.current?.setAttribute('viewBox', boundsToViewBox(activeViewBox));
       return undefined;
     }
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
+    if (prefersReducedMotion || !shouldAnimateMap) {
       setAnimatedViewBox(activeViewBox);
       animatedViewBoxRef.current = activeViewBox;
+      svgRef.current?.setAttribute('viewBox', boundsToViewBox(activeViewBox));
       return undefined;
     }
 
@@ -763,7 +834,7 @@ export function PixelWorldMap({
       const nextViewBox = interpolateBounds(fromViewBox, activeViewBox, easedProgress);
 
       animatedViewBoxRef.current = nextViewBox;
-      setAnimatedViewBox(nextViewBox);
+      svgRef.current?.setAttribute('viewBox', boundsToViewBox(nextViewBox));
 
       if (progress < 1) {
         viewBoxAnimationRef.current = requestAnimationFrame(animateViewBox);
@@ -778,20 +849,25 @@ export function PixelWorldMap({
     return () => {
       if (viewBoxAnimationRef.current) cancelAnimationFrame(viewBoxAnimationRef.current);
     };
-  }, [targetViewBoxValue]);
+  }, [activeViewBox, shouldAnimateMap, targetViewBoxValue]);
 
   useLayoutEffect(() => {
+    if (!shouldAnimateMap) return undefined;
     if (!showUserConnection && selectedContactId === null) return undefined;
-    let animationFrame = null;
+    let syncAnimationFrame = null;
+    let scheduledAnimationFrame = null;
+    let isScheduled = false;
 
     const updateAvatarPoints = () => {
+      isScheduled = false;
       const svg = svgRef.current;
       if (!svg) return;
 
       const userAvatar = userAvatarRef?.current;
       if (showUserConnection && userAvatar) {
         const rect = userAvatar.getBoundingClientRect();
-        setUserAvatarPoint(getSvgPoint(svg, rect.left + rect.width / 2, rect.bottom - 2));
+        const nextPoint = getSvgPoint(svg, rect.left + rect.width / 2, rect.bottom - 2);
+        setUserAvatarPoint((current) => (arePointsEqual(current, nextPoint) ? current : nextPoint));
       }
 
       const selectedAvatar =
@@ -800,10 +876,17 @@ export function PixelWorldMap({
         const rect = selectedAvatar.getBoundingClientRect();
         const anchorX = softAvatarConnection ? rect.right - 4 : rect.left + rect.width / 2;
         const anchorY = softAvatarConnection ? rect.top + rect.height * 0.42 : rect.top + 2;
-        setSelectedAvatarPoint(getSvgPoint(svg, anchorX, anchorY));
+        const nextPoint = getSvgPoint(svg, anchorX, anchorY);
+        setSelectedAvatarPoint((current) => (arePointsEqual(current, nextPoint) ? current : nextPoint));
       } else if (selectedContactId !== null) {
-        setSelectedAvatarPoint(null);
+        setSelectedAvatarPoint((current) => (current === null ? current : null));
       }
+    };
+
+    const scheduleAvatarPointUpdate = () => {
+      if (isScheduled) return;
+      isScheduled = true;
+      scheduledAnimationFrame = requestAnimationFrame(updateAvatarPoints);
     };
 
     updateAvatarPoints();
@@ -812,20 +895,29 @@ export function PixelWorldMap({
       updateAvatarPoints();
 
       if (now - startedAt < VIEWBOX_ANIMATION_MS + 160) {
-        animationFrame = requestAnimationFrame(syncAvatarPoints);
+        syncAnimationFrame = requestAnimationFrame(syncAvatarPoints);
       }
     };
 
-    animationFrame = requestAnimationFrame(syncAvatarPoints);
-    window.addEventListener('resize', updateAvatarPoints);
-    window.addEventListener('scroll', updateAvatarPoints, true);
+    syncAnimationFrame = requestAnimationFrame(syncAvatarPoints);
+    window.addEventListener('resize', scheduleAvatarPointUpdate, { passive: true });
+    window.addEventListener('scroll', scheduleAvatarPointUpdate, { passive: true, capture: true });
 
     return () => {
-      if (animationFrame) cancelAnimationFrame(animationFrame);
-      window.removeEventListener('resize', updateAvatarPoints);
-      window.removeEventListener('scroll', updateAvatarPoints, true);
+      if (syncAnimationFrame) cancelAnimationFrame(syncAnimationFrame);
+      if (scheduledAnimationFrame) cancelAnimationFrame(scheduledAnimationFrame);
+      window.removeEventListener('resize', scheduleAvatarPointUpdate);
+      window.removeEventListener('scroll', scheduleAvatarPointUpdate, true);
     };
-  }, [showUserConnection, selectedContactId, userAvatarRef, contactAvatarRefs, selectedAvatarRef, softAvatarConnection]);
+  }, [
+    shouldAnimateMap,
+    showUserConnection,
+    selectedContactId,
+    userAvatarRef,
+    contactAvatarRefs,
+    selectedAvatarRef,
+    softAvatarConnection,
+  ]);
 
   const handleMapClick = (event) => {
     if (!isMapInteractive) return;
@@ -834,7 +926,7 @@ export function PixelWorldMap({
     if (!svg) return;
 
     const point = getSvgPoint(svg, event.clientX, event.clientY);
-    const contact = getRegionContactFromPoint(point, contacts, cols, rows);
+    const contact = getRegionContactFromPoint(point, contacts, MAP_COLS, MAP_ROWS);
     if (contact) onRegionContactSelect(contact);
   };
 
@@ -846,7 +938,7 @@ export function PixelWorldMap({
   };
 
   return (
-    <div className={isMapInteractive ? 'map-wrapper is-interactive' : 'map-wrapper'}>
+    <div ref={wrapperRef} className={isMapInteractive ? 'map-wrapper is-interactive' : 'map-wrapper'}>
       <svg
         ref={svgRef}
         viewBox={viewBoxValue}
@@ -895,7 +987,10 @@ export function PixelWorldMap({
           )}
         </defs>
 
-        {mapCells}
+        <path d={STATIC_MAP_PATHS.landPath} fill="#D1CCC3" />
+        {STATIC_MAP_PATHS.waterPaths.map(({ opacity, path }) => (
+          <path key={opacity} d={path} fill="#E5E0D8" opacity={opacity} />
+        ))}
 
         {selectedContact && (
           <g className={selectedTransitionMode ? `map-contact-connection map-connection-${selectedTransitionMode}` : 'map-contact-connection'}>
@@ -917,7 +1012,7 @@ export function PixelWorldMap({
               strokeLinecap="round"
               strokeWidth="1.5"
             >
-              <animate attributeName="stroke-dashoffset" values="8;0" dur="1s" repeatCount="indefinite" />
+              {shouldAnimateMap && <animate attributeName="stroke-dashoffset" values="8;0" dur="1s" repeatCount="indefinite" />}
             </path>
           </g>
         )}
@@ -941,7 +1036,7 @@ export function PixelWorldMap({
               strokeOpacity="0.82"
               strokeWidth="1.45"
             >
-              <animate attributeName="stroke-dashoffset" values="8;0" dur="1.15s" repeatCount="indefinite" />
+              {shouldAnimateMap && <animate attributeName="stroke-dashoffset" values="8;0" dur="1.15s" repeatCount="indefinite" />}
             </path>
           </g>
         )}
@@ -993,8 +1088,8 @@ export function PixelWorldMap({
             className={selectedPinClassName}
           >
             <circle cx="0" cy="0" r={selectedPulseRadius} fill="none" stroke={COLORS.primary} strokeWidth="1.2" opacity="0.8">
-              <animate attributeName="r" values={selectedPulseValues} dur="2s" repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0.8;0;0.8" dur="2s" repeatCount="indefinite" />
+              {shouldAnimateMap && <animate attributeName="r" values={selectedPulseValues} dur="2s" repeatCount="indefinite" />}
+              {shouldAnimateMap && <animate attributeName="opacity" values="0.8;0;0.8" dur="2s" repeatCount="indefinite" />}
             </circle>
 
             <circle
@@ -1013,7 +1108,7 @@ export function PixelWorldMap({
                   x={selectedNameLabelLayout.x}
                   y={selectedNameLabelLayout.y}
                   fontSize={NAME_LABEL_FONT_SIZE}
-                  fontFamily="L2L PingFang SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif"
+                  fontFamily="var(--l2l-font-ui)"
                   fill={COLORS.bg}
                   stroke={COLORS.bg}
                   strokeLinejoin="round"
@@ -1028,7 +1123,7 @@ export function PixelWorldMap({
                   x={selectedNameLabelLayout.x}
                   y={selectedNameLabelLayout.y}
                   fontSize={NAME_LABEL_FONT_SIZE}
-                  fontFamily="L2L PingFang SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif"
+                  fontFamily="var(--l2l-font-ui)"
                   fill={COLORS.primaryDeep}
                   fontWeight="400"
                   letterSpacing="0.2"
@@ -1051,7 +1146,7 @@ export function PixelWorldMap({
               stroke={COLORS.bg}
               strokeLinejoin="round"
               strokeWidth="2.6"
-              fontFamily="L2L PingFang SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif"
+              fontFamily="var(--l2l-font-ui)"
               fontSize="8"
               fontWeight="400"
               textAnchor={selectedInfoPosition.textAnchor}
@@ -1063,7 +1158,7 @@ export function PixelWorldMap({
               x={selectedInfoPosition.x}
               y={selectedInfoPosition.y}
               fill={COLORS.primary}
-              fontFamily="L2L PingFang SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif"
+              fontFamily="var(--l2l-font-ui)"
               fontSize="8"
               fontWeight="400"
               textAnchor={selectedInfoPosition.textAnchor}
@@ -1080,7 +1175,7 @@ export function PixelWorldMap({
                   stroke={COLORS.bg}
                   strokeLinejoin="round"
                   strokeWidth="2.4"
-                  fontFamily="L2L PingFang SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif"
+                  fontFamily="var(--l2l-font-ui)"
                   fontSize="7.5"
                   fontWeight="400"
                   letterSpacing="0.2"
@@ -1093,7 +1188,7 @@ export function PixelWorldMap({
                   x={selectedInfoPosition.x}
                   y={selectedInfoPosition.timeY}
                   fill={COLORS.textGray}
-                  fontFamily="L2L PingFang SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif"
+                  fontFamily="var(--l2l-font-ui)"
                   fontSize="7.5"
                   fontWeight="400"
                   letterSpacing="0.2"
@@ -1110,15 +1205,15 @@ export function PixelWorldMap({
         {showUserConnection && userNameLabelLayout && (
           <g transform={`translate(${userPoint.x}, ${userPoint.y})`} className="map-user">
             <circle cx="0" cy="0" r={userPulseRadius} fill="none" stroke={COLORS.primary} strokeWidth="1.2" opacity="0.72">
-              <animate attributeName="r" values={userPulseValues} dur="2.4s" repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0.72;0.12;0.72" dur="2.4s" repeatCount="indefinite" />
+              {shouldAnimateMap && <animate attributeName="r" values={userPulseValues} dur="2.4s" repeatCount="indefinite" />}
+              {shouldAnimateMap && <animate attributeName="opacity" values="0.72;0.12;0.72" dur="2.4s" repeatCount="indefinite" />}
             </circle>
             <circle cx="0" cy="0" r="4.2" fill={COLORS.primary} stroke={COLORS.bg} strokeWidth="1.5" />
             <text
               x={userNameLabelLayout.x}
               y={userNameLabelLayout.y}
               fontSize={USER_LABEL_FONT_SIZE}
-              fontFamily="L2L PingFang SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif"
+              fontFamily="var(--l2l-font-ui)"
               fill={COLORS.bg}
               stroke={COLORS.bg}
               strokeLinejoin="round"
@@ -1133,7 +1228,7 @@ export function PixelWorldMap({
               x={userNameLabelLayout.x}
               y={userNameLabelLayout.y}
               fontSize={USER_LABEL_FONT_SIZE}
-              fontFamily="L2L PingFang SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif"
+              fontFamily="var(--l2l-font-ui)"
               fill={COLORS.primaryDeep}
               fontWeight="400"
               letterSpacing="0.2"
@@ -1154,7 +1249,7 @@ export function PixelWorldMap({
               stroke={COLORS.bg}
               strokeLinejoin="round"
               strokeWidth="2.4"
-              fontFamily="L2L PingFang SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif"
+              fontFamily="var(--l2l-font-ui)"
               fontSize={DISTANCE_LABEL_FONT_SIZE}
               fontWeight="400"
               letterSpacing="0.2"
@@ -1167,7 +1262,7 @@ export function PixelWorldMap({
               x={safeDistanceLabelPoint.x}
               y={safeDistanceLabelPoint.y + 2.5}
               fill={COLORS.distanceText}
-              fontFamily="L2L PingFang SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif"
+              fontFamily="var(--l2l-font-ui)"
               fontSize={DISTANCE_LABEL_FONT_SIZE}
               fontWeight="400"
               letterSpacing="0.2"

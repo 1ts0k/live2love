@@ -85,6 +85,7 @@ const SEARCH_FILTERS = [
 ];
 
 const REMOVED_BEAUTIFY_PRESET_IDS = new Set(['default']);
+const STREAM_FLUSH_MS = 80;
 
 function getMessageSenderLabel(message, threadName) {
   return message.from === 'user' ? '我' : threadName;
@@ -142,6 +143,8 @@ export function MessagesView({
   const [beautifyNotice, setBeautifyNotice] = useState('');
   const [generatingThreadId, setGeneratingThreadId] = useState(null);
   const abortControllerRef = useRef(null);
+  const streamBufferRef = useRef({ threadId: null, messageId: null, text: '' });
+  const streamFlushTimerRef = useRef(null);
 
   const hydratedThreads = useMemo(() => hydrateThreads(threads, contacts), [contacts, threads]);
   const activeThread = hydratedThreads.find((thread) => thread.id === activeThreadId) ?? null;
@@ -171,10 +174,53 @@ export function MessagesView({
     setBeautifyCss(activePreset.css);
   }, [activeThreadId, activeThread?.activeBeautifyPresetId, threadPanel]);
 
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(streamFlushTimerRef.current);
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   const patchMessage = (threadId, messageId, updater) => {
     setThreads((current) =>
       current.map((thread) => (thread.id === threadId ? replaceMessage(thread, messageId, updater) : thread))
     );
+  };
+
+  const flushStreamBuffer = () => {
+    window.clearTimeout(streamFlushTimerRef.current);
+    streamFlushTimerRef.current = null;
+
+    const buffered = streamBufferRef.current;
+    if (!buffered.threadId || !buffered.messageId || !buffered.text) return;
+
+    streamBufferRef.current = { ...buffered, text: '' };
+    patchMessage(buffered.threadId, buffered.messageId, (message) => ({
+      ...message,
+      status: 'streaming',
+      text: `${message.text}${buffered.text}`,
+    }));
+  };
+
+  const queueStreamDelta = (threadId, messageId, delta) => {
+    if (!delta) return;
+
+    const buffered = streamBufferRef.current;
+    if (buffered.threadId !== threadId || buffered.messageId !== messageId) {
+      flushStreamBuffer();
+      streamBufferRef.current = { threadId, messageId, text: '' };
+    }
+
+    streamBufferRef.current = {
+      ...streamBufferRef.current,
+      threadId,
+      messageId,
+      text: `${streamBufferRef.current.text}${delta}`,
+    };
+
+    if (!streamFlushTimerRef.current) {
+      streamFlushTimerRef.current = window.setTimeout(flushStreamBuffer, STREAM_FLUSH_MS);
+    }
   };
 
   const patchThread = (threadId, updater) => {
@@ -273,20 +319,18 @@ export function MessagesView({
         systemPrompt: getContactSystemPrompt(thread.contact, worldBooks, requestMessages),
         signal: abortController.signal,
         onDelta: (delta) => {
-          patchMessage(thread.id, aiMessageId, (message) => ({
-            ...message,
-            status: 'streaming',
-            text: `${message.text}${delta}`,
-          }));
+          queueStreamDelta(thread.id, aiMessageId, delta);
         },
       });
 
+      flushStreamBuffer();
       patchMessage(thread.id, aiMessageId, (message) => ({
         ...message,
         status: 'done',
         text: message.text.trim() || '我在，但这次没有组织出合适的回复。',
       }));
     } catch (error) {
+      flushStreamBuffer();
       patchMessage(thread.id, aiMessageId, (message) => ({
         ...message,
         status: 'failed',

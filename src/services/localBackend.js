@@ -1,6 +1,7 @@
 import { createInitialThreads } from '../data/messages.js';
 import { DEFAULT_CONTACT_GROUPS, INITIAL_CONTACTS, normalizeContactGroups, normalizeContacts } from '../data/contactModel.js';
 import { DEFAULT_WORLD_BOOK_STATE, normalizeWorldBooks } from '../data/worldBook.js';
+import { DEFAULT_APPEARANCE_SETTINGS, normalizeAppearanceSettings, normalizeCustomFont } from './appearance.js';
 import { DEFAULT_API_SETTINGS } from './llmClient.js';
 
 const DB_NAME = 'live2love-local-backend';
@@ -13,6 +14,8 @@ const KEYS = {
   threads: 'threads',
   apiSettings: 'apiSettings',
   worldBooks: 'worldBooks',
+  appearanceSettings: 'appearanceSettings',
+  customFont: 'customFont',
 };
 
 let dbPromise = null;
@@ -76,12 +79,14 @@ async function writeRecord(key, value) {
 }
 
 export async function loadLocalState() {
-  const [contacts, contactGroups, threads, apiSettings, worldBooks] = await Promise.all([
+  const [contacts, contactGroups, threads, apiSettings, worldBooks, appearanceSettings, customFont] = await Promise.all([
     readRecord(KEYS.contacts),
     readRecord(KEYS.contactGroups),
     readRecord(KEYS.threads),
     readRecord(KEYS.apiSettings),
     readRecord(KEYS.worldBooks),
+    readRecord(KEYS.appearanceSettings),
+    readRecord(KEYS.customFont),
   ]);
   const normalizedContactGroups = normalizeContactGroups(contactGroups ?? DEFAULT_CONTACT_GROUPS);
   const sourceContacts = Array.isArray(contacts) && contacts.length > 0 ? contacts : INITIAL_CONTACTS;
@@ -95,6 +100,8 @@ export async function loadLocalState() {
       ...(apiSettings ?? {}),
     },
     worldBooks: worldBooks ? normalizeWorldBooks(worldBooks) : DEFAULT_WORLD_BOOK_STATE,
+    appearanceSettings: normalizeAppearanceSettings(appearanceSettings ?? DEFAULT_APPEARANCE_SETTINGS),
+    customFont: normalizeCustomFont(customFont),
   };
 }
 
@@ -116,4 +123,12 @@ export function saveApiSettings(apiSettings) {
 
 export function saveWorldBooks(worldBooks) {
   return writeRecord(KEYS.worldBooks, normalizeWorldBooks(worldBooks));
+}
+
+export function saveAppearanceSettings(appearanceSettings) {
+  return writeRecord(KEYS.appearanceSettings, normalizeAppearanceSettings(appearanceSettings));
+}
+
+export function saveCustomFont(customFont) {
+  return writeRecord(KEYS.customFont, normalizeCustomFont(customFont));
 }

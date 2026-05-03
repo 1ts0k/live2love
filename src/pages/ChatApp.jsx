@@ -1,12 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { HomeWallpaper } from '../components/Backdrops.jsx';
-import { ContactDetail } from '../components/ContactDetail.jsx';
 import { BulkGroupPicker, ContactDock, ContactGroupBar, ContactGroupManager } from '../components/ContactDock.jsx';
-import { ContactEditorSheet } from '../components/ContactEditorSheet.jsx';
 import { MessagesView } from '../components/MessagesView.jsx';
-import { PixelWorldMap } from '../components/PixelWorldMap.jsx';
-import { SettingsView } from '../components/SettingsView.jsx';
-import { WorldBookView } from '../components/WorldBookView.jsx';
 import { createInitialThreads } from '../data/messages.js';
 import {
   DEFAULT_WORLD_BOOK_STATE,
@@ -32,14 +27,25 @@ import {
 import { DEFAULT_API_SETTINGS } from '../services/llmClient.js';
 import {
   loadLocalState,
+  saveAppearanceSettings,
   saveApiSettings,
   saveContactGroups,
   saveContacts,
+  saveCustomFont,
   saveThreads,
   saveWorldBooks,
 } from '../services/localBackend.js';
+import { DEFAULT_APPEARANCE_SETTINGS, applyAppearanceFont } from '../services/appearance.js';
 import { AppMenuBar } from '../shell/AppMenuBar.jsx';
 import { runViewTransition } from '../utils/viewTransition.js';
+
+const ContactDetail = lazy(() => import('../components/ContactDetail.jsx').then((module) => ({ default: module.ContactDetail })));
+const ContactEditorSheet = lazy(() =>
+  import('../components/ContactEditorSheet.jsx').then((module) => ({ default: module.ContactEditorSheet }))
+);
+const PixelWorldMap = lazy(() => import('../components/PixelWorldMap.jsx').then((module) => ({ default: module.PixelWorldMap })));
+const SettingsView = lazy(() => import('../components/SettingsView.jsx').then((module) => ({ default: module.SettingsView })));
+const WorldBookView = lazy(() => import('../components/WorldBookView.jsx').then((module) => ({ default: module.WorldBookView })));
 
 const MENU_ITEMS = [
   { id: 'messages', label: '消息', icon: 'message' },
@@ -64,7 +70,10 @@ export function ChatApp({ initialApp = 'messages', activeApp: controlledActiveAp
   const [threads, setThreads] = useState(createInitialThreads);
   const [apiSettings, setApiSettings] = useState(DEFAULT_API_SETTINGS);
   const [worldBooks, setWorldBooks] = useState(DEFAULT_WORLD_BOOK_STATE);
+  const [appearanceSettings, setAppearanceSettings] = useState(DEFAULT_APPEARANCE_SETTINGS);
+  const [customFont, setCustomFont] = useState(null);
   const [storageStatus, setStorageStatus] = useState({ isReady: false, error: '' });
+  const [appearanceStatus, setAppearanceStatus] = useState({ isReady: true, error: '' });
   const [localActiveApp, setLocalActiveApp] = useState(initialApp);
   const [activeThreadId, setActiveThreadId] = useState(null);
   const [selectedContactId, setSelectedContactId] = useState(null);
@@ -97,6 +106,7 @@ export function ChatApp({ initialApp = 'messages', activeApp: controlledActiveAp
   const hasLoadedLocalStateRef = useRef(false);
   const saveThreadsTimerRef = useRef(null);
   const saveWorldBooksTimerRef = useRef(null);
+  const saveCustomFontTimerRef = useRef(null);
   const hasMigratedLegacyWorldBooksRef = useRef(false);
   const activeApp = controlledActiveApp ?? localActiveApp;
   const setActiveApp = controlledActiveApp === undefined ? setLocalActiveApp : () => {};
@@ -139,6 +149,8 @@ export function ChatApp({ initialApp = 'messages', activeApp: controlledActiveAp
         setThreads(state.threads);
         setApiSettings(state.apiSettings);
         setWorldBooks(state.worldBooks);
+        setAppearanceSettings(state.appearanceSettings);
+        setCustomFont(state.customFont);
         hasLoadedLocalStateRef.current = true;
         setStorageStatus({ isReady: true, error: '' });
       })
@@ -218,6 +230,48 @@ export function ChatApp({ initialApp = 'messages', activeApp: controlledActiveAp
   }, [worldBooks]);
 
   useEffect(() => {
+    let isMounted = true;
+
+    applyAppearanceFont(appearanceSettings, customFont).then((result) => {
+      if (!isMounted) return;
+
+      setAppearanceStatus({
+        isReady: true,
+        error: result.ok ? '' : result.message,
+      });
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [appearanceSettings, customFont]);
+
+  useEffect(() => {
+    if (!hasLoadedLocalStateRef.current) return;
+    saveAppearanceSettings(appearanceSettings).catch((error) => {
+      setStorageStatus((current) => ({
+        ...current,
+        error: error?.message ?? '外观设置保存失败。',
+      }));
+    });
+  }, [appearanceSettings]);
+
+  useEffect(() => {
+    if (!hasLoadedLocalStateRef.current) return;
+    window.clearTimeout(saveCustomFontTimerRef.current);
+    saveCustomFontTimerRef.current = window.setTimeout(() => {
+      saveCustomFont(customFont).catch((error) => {
+        setStorageStatus((current) => ({
+          ...current,
+          error: error?.message ?? '自定义字体保存失败。',
+        }));
+      });
+    }, 250);
+
+    return () => window.clearTimeout(saveCustomFontTimerRef.current);
+  }, [customFont]);
+
+  useEffect(() => {
     const titleMap = {
       contacts: '聊天 联系人',
       messages: '聊天 消息',
@@ -234,6 +288,7 @@ export function ChatApp({ initialApp = 'messages', activeApp: controlledActiveAp
       window.clearTimeout(transitionTimerRef.current);
       window.clearTimeout(saveThreadsTimerRef.current);
       window.clearTimeout(saveWorldBooksTimerRef.current);
+      window.clearTimeout(saveCustomFontTimerRef.current);
     };
   }, []);
 
@@ -994,18 +1049,20 @@ export function ChatApp({ initialApp = 'messages', activeApp: controlledActiveAp
     setActiveThreadId(null);
   };
   const mapView = (
-    <PixelWorldMap
-      contacts={activeContact ? contacts : visibleContacts}
-      selectedContactId={selectedContactId}
-      showUserConnection={showUserConnection}
-      userAvatarRef={profileButtonRef}
-      contactAvatarRefs={contactAvatarRefs}
-      selectedAvatarRef={activeContact ? detailAvatarRef : null}
-      connectionTransition={mapConnectionTransition}
-      showSelectedLocalTime={!activeContact}
-      softAvatarConnection={Boolean(activeContact)}
-      onRegionContactSelect={activeContact ? undefined : handleSelectMapRegionContact}
-    />
+    <Suspense fallback={<div className="map-wrapper map-loading" aria-hidden="true" />}>
+      <PixelWorldMap
+        contacts={activeContact ? contacts : visibleContacts}
+        selectedContactId={selectedContactId}
+        showUserConnection={showUserConnection}
+        userAvatarRef={profileButtonRef}
+        contactAvatarRefs={contactAvatarRefs}
+        selectedAvatarRef={activeContact ? detailAvatarRef : null}
+        connectionTransition={mapConnectionTransition}
+        showSelectedLocalTime={!activeContact}
+        softAvatarConnection={Boolean(activeContact)}
+        onRegionContactSelect={activeContact ? undefined : handleSelectMapRegionContact}
+      />
+    </Suspense>
   );
   const isChatThreadOpen = activeApp === 'messages' && Boolean(activeThreadId);
   const screenClassName = [
@@ -1052,22 +1109,31 @@ export function ChatApp({ initialApp = 'messages', activeApp: controlledActiveAp
         )}
 
         {activeApp === 'settings' && (
-          <SettingsView
-            apiSettings={apiSettings}
-            storageStatus={storageStatus}
-            onApiSettingsChange={setApiSettings}
-            onClearApiKey={handleClearApiKey}
-            onResetThreads={handleResetThreads}
-          />
+          <Suspense fallback={null}>
+            <SettingsView
+              apiSettings={apiSettings}
+              storageStatus={storageStatus}
+              appearanceSettings={appearanceSettings}
+              customFont={customFont}
+              appearanceStatus={appearanceStatus}
+              onApiSettingsChange={setApiSettings}
+              onAppearanceSettingsChange={setAppearanceSettings}
+              onCustomFontChange={setCustomFont}
+              onClearApiKey={handleClearApiKey}
+              onResetThreads={handleResetThreads}
+            />
+          </Suspense>
         )}
 
         {activeApp === 'worldbook' && (
-          <WorldBookView
-            contacts={contacts}
-            worldBooks={worldBooks}
-            onWorldBooksChange={setWorldBooks}
-            onCloseApp={onCloseApp}
-          />
+          <Suspense fallback={null}>
+            <WorldBookView
+              contacts={contacts}
+              worldBooks={worldBooks}
+              onWorldBooksChange={setWorldBooks}
+              onCloseApp={onCloseApp}
+            />
+          </Suspense>
         )}
 
         {activeApp === 'contacts' && (
@@ -1119,15 +1185,17 @@ export function ChatApp({ initialApp = 'messages', activeApp: controlledActiveAp
             {!activeContact && <div className="home-map-area contacts-map-area">{mapView}</div>}
 
             {editingDraft && (
-              <ContactEditorSheet
-                editorRef={contactEditorRef}
-                draft={editingDraft}
-                cityPresets={CITY_PRESETS}
-                contactGroups={contactGroups}
-                onDraftChange={setEditingDraft}
-                onCancel={handleCancelDraft}
-                onSubmit={handleSaveDraft}
-              />
+              <Suspense fallback={null}>
+                <ContactEditorSheet
+                  editorRef={contactEditorRef}
+                  draft={editingDraft}
+                  cityPresets={CITY_PRESETS}
+                  contactGroups={contactGroups}
+                  onDraftChange={setEditingDraft}
+                  onCancel={handleCancelDraft}
+                  onSubmit={handleSaveDraft}
+                />
+              </Suspense>
             )}
 
             <ContactDock
@@ -1188,22 +1256,24 @@ export function ChatApp({ initialApp = 'messages', activeApp: controlledActiveAp
         )}
 
         {activeApp === 'contacts' && ENABLE_CONTACT_DETAIL_VIEW && activeContact && (
-          <ContactDetail
-            contact={activeContact}
-            avatarRef={detailAvatarRef}
-            mapSlot={mapView}
-            contactGroups={contactGroups}
-            roleWorldBookEntries={activeContactRoleWorldBookEntries}
-            roleWorldBookCategories={normalizedWorldBooks.roleCategories}
-            onBack={closeContactDetail}
-            onDetailChange={handleActiveContactDetailChange}
-            onGroupsChange={(groupIds) => handleChangeContactGroups(activeContact.id, groupIds)}
-            onDeleteContact={() => handleDeleteActiveContact(activeContact.id)}
-            onAddRoleWorldBookEntry={() => handleAddRoleWorldBookEntry(activeContact)}
-            onAddRoleWorldBookCategory={handleAddRoleWorldBookCategory}
-            onPatchRoleWorldBookEntry={handlePatchRoleWorldBookEntry}
-            onDeleteRoleWorldBookEntry={handleDeleteRoleWorldBookEntry}
-          />
+          <Suspense fallback={null}>
+            <ContactDetail
+              contact={activeContact}
+              avatarRef={detailAvatarRef}
+              mapSlot={mapView}
+              contactGroups={contactGroups}
+              roleWorldBookEntries={activeContactRoleWorldBookEntries}
+              roleWorldBookCategories={normalizedWorldBooks.roleCategories}
+              onBack={closeContactDetail}
+              onDetailChange={handleActiveContactDetailChange}
+              onGroupsChange={(groupIds) => handleChangeContactGroups(activeContact.id, groupIds)}
+              onDeleteContact={() => handleDeleteActiveContact(activeContact.id)}
+              onAddRoleWorldBookEntry={() => handleAddRoleWorldBookEntry(activeContact)}
+              onAddRoleWorldBookCategory={handleAddRoleWorldBookCategory}
+              onPatchRoleWorldBookEntry={handlePatchRoleWorldBookEntry}
+              onDeleteRoleWorldBookEntry={handleDeleteRoleWorldBookEntry}
+            />
+          </Suspense>
         )}
       </section>
     </main>
