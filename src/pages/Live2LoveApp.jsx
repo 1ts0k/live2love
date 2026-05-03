@@ -80,14 +80,13 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
   const [selectedBulkContactIds, setSelectedBulkContactIds] = useState(() => new Set());
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [isBulkGroupPickerOpen, setIsBulkGroupPickerOpen] = useState(false);
+  const [isManagingGroups, setIsManagingGroups] = useState(false);
   const [draggingContactId, setDraggingContactId] = useState(null);
-  const [draggingGroupId, setDraggingGroupId] = useState(null);
   const longPressTimerRef = useRef(null);
   const suppressNextClickRef = useRef(false);
   const newContactSeedRef = useRef(1);
   const transitionTimerRef = useRef(null);
   const sortDragRef = useRef(null);
-  const groupSortDragRef = useRef(null);
   const profileButtonRef = useRef(null);
   const detailAvatarRef = useRef(null);
   const contactAvatarRefs = useRef({});
@@ -338,7 +337,7 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
     longPressTimerRef.current = window.setTimeout(() => {
       suppressNextClickRef.current = true;
       setEditingDraft(null);
-      setEditingGroupId(null);
+      closeGroupEditing();
       setIsEditingContacts(true);
     }, LONG_PRESS_MS);
   };
@@ -354,14 +353,29 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
   };
 
   const startGroupEditing = (groupId) => {
+    const normalizedGroups = normalizeContactGroups(contactGroups);
+    const targetGroupId =
+      groupId && groupId !== ALL_CONTACTS_GROUP_ID && normalizedGroups.some((group) => group.id === groupId)
+        ? groupId
+        : selectedContactGroupId !== ALL_CONTACTS_GROUP_ID &&
+            normalizedGroups.some((group) => group.id === selectedContactGroupId)
+          ? selectedContactGroupId
+          : normalizedGroups[0]?.id ?? null;
+
     setEditingDraft(null);
-    setEditingGroupId(groupId);
+    setEditingGroupId(targetGroupId);
+    setIsManagingGroups(true);
     setIsEditingContacts(false);
     setSelectedBulkContactIds(new Set());
     setConfirmBulkDelete(false);
     setIsBulkGroupPickerOpen(false);
     setDraggingContactId(null);
     sortDragRef.current = null;
+  };
+
+  const closeGroupEditing = () => {
+    setIsManagingGroups(false);
+    setEditingGroupId(null);
   };
 
   const moveContactBefore = (movingContactId, targetContactId) => {
@@ -377,30 +391,6 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
       const nextTargetIndex = next.findIndex((contact) => contact.id === targetContactId);
       next.splice(nextTargetIndex, 0, movingContact);
 
-      return next;
-    });
-  };
-
-  const moveContactGroupNear = (movingGroupId, targetGroupId, placement = 'before') => {
-    if (!movingGroupId || movingGroupId === ALL_CONTACTS_GROUP_ID || movingGroupId === targetGroupId) return;
-
-    setContactGroups((current) => {
-      const nextGroups = normalizeContactGroups(current);
-      const fromIndex = nextGroups.findIndex((group) => group.id === movingGroupId);
-      if (fromIndex < 0) return current;
-
-      const next = [...nextGroups];
-      const [movingGroup] = next.splice(fromIndex, 1);
-
-      if (targetGroupId === ALL_CONTACTS_GROUP_ID) {
-        next.unshift(movingGroup);
-        return next;
-      }
-
-      const targetIndex = next.findIndex((group) => group.id === targetGroupId);
-      if (targetIndex < 0) return current;
-
-      next.splice(placement === 'after' ? targetIndex + 1 : targetIndex, 0, movingGroup);
       return next;
     });
   };
@@ -459,60 +449,6 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
     window.addEventListener('pointercancel', handlePointerUp);
   };
 
-  const handleGroupSortPointerDown = (event, groupId) => {
-    if (!groupId || groupId === ALL_CONTACTS_GROUP_ID || event.button > 0) return;
-    const shouldStartSorting = Boolean(event.forceSorting);
-
-    groupSortDragRef.current = {
-      groupId,
-      isSorting: shouldStartSorting,
-      startX: event.clientX,
-      startY: event.clientY,
-    };
-
-    if (shouldStartSorting) {
-      setDraggingGroupId(groupId);
-    }
-
-    const handlePointerMove = (moveEvent) => {
-      const dragState = groupSortDragRef.current;
-      if (!dragState) return;
-
-      const deltaX = moveEvent.clientX - dragState.startX;
-      const deltaY = moveEvent.clientY - dragState.startY;
-      const hasMovedEnough = Math.hypot(deltaX, deltaY) > 6;
-
-      if (!dragState.isSorting && hasMovedEnough) {
-        dragState.isSorting = true;
-        setDraggingGroupId(dragState.groupId);
-      }
-
-      if (!dragState.isSorting) return;
-
-      moveEvent.preventDefault();
-      const targetElement = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
-      const targetItem = targetElement?.closest('[data-contact-group-id]');
-      const targetGroupId = targetItem?.getAttribute('data-contact-group-id');
-      if (targetGroupId && targetGroupId !== dragState.groupId) {
-        const targetRect = targetItem.getBoundingClientRect();
-        const placement = moveEvent.clientX > targetRect.left + targetRect.width / 2 ? 'after' : 'before';
-        moveContactGroupNear(dragState.groupId, targetGroupId, placement);
-      }
-    };
-
-    const handlePointerUp = () => {
-      groupSortDragRef.current = null;
-      setDraggingGroupId(null);
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-      window.removeEventListener('pointercancel', handlePointerUp);
-    };
-
-    window.addEventListener('pointermove', handlePointerMove, { passive: false });
-    window.addEventListener('pointerup', handlePointerUp);
-    window.addEventListener('pointercancel', handlePointerUp);
-  };
-
   const handleScreenPointerDownCapture = (event) => {
     if (activeApp !== 'contacts') return;
     if (activeContactId) return;
@@ -531,10 +467,8 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
 
     closeContactEditing();
     setIsContactWallOpen(false);
-    setEditingGroupId(null);
+    closeGroupEditing();
     setIsBulkGroupPickerOpen(false);
-    setDraggingGroupId(null);
-    groupSortDragRef.current = null;
   };
 
   const handleNativeContextMenuCapture = (event) => {
@@ -565,7 +499,7 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
       setContactDetailReturnThreadId(null);
       setSelectedContactId(contact.id);
       setEditingDraft(null);
-      setEditingGroupId(null);
+      closeGroupEditing();
       setIsContactWallOpen(false);
       setActiveContactId(contact.id);
     };
@@ -635,7 +569,7 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
       selectedContactGroupId === ALL_CONTACTS_GROUP_ID ? [DEFAULT_CONTACT_GROUP_ID] : [selectedContactGroupId];
 
     setIsContactWallOpen(false);
-    setEditingGroupId(null);
+    closeGroupEditing();
     setEditingDraft(createContactDraft(newContactSeedRef.current, groupIds));
     setIsEditingContacts(true);
   };
@@ -668,6 +602,9 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
     setIsBulkGroupPickerOpen(false);
     setSelectedContactId(null);
     setMapConnectionTransition(null);
+    if (isManagingGroups && groupId !== ALL_CONTACTS_GROUP_ID) {
+      setEditingGroupId(groupId);
+    }
   };
 
   const handleAddContactGroup = (name) => {
@@ -678,12 +615,15 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
     const existingGroup = normalizedGroups.find((item) => item.label === group.label);
     if (existingGroup) {
       setSelectedContactGroupId(existingGroup.id);
+      setEditingGroupId(existingGroup.id);
+      setIsManagingGroups(true);
       return;
     }
 
     setContactGroups([...normalizedGroups, group]);
     setSelectedContactGroupId(group.id);
     setEditingGroupId(group.id);
+    setIsManagingGroups(true);
   };
 
   const handleRenameContactGroup = (groupId, label) => {
@@ -693,6 +633,23 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
     setContactGroups((current) =>
       normalizeContactGroups(current).map((group) => (group.id === groupId ? { ...group, label: nextLabel } : group))
     );
+  };
+
+  const handleMoveContactGroup = (groupId, direction) => {
+    if (!groupId || groupId === ALL_CONTACTS_GROUP_ID || direction === 0) return;
+
+    setContactGroups((current) => {
+      const nextGroups = normalizeContactGroups(current);
+      const fromIndex = nextGroups.findIndex((group) => group.id === groupId);
+      const toIndex = fromIndex + direction;
+
+      if (fromIndex < 0 || toIndex < 0 || toIndex >= nextGroups.length) return current;
+
+      const next = [...nextGroups];
+      const [movingGroup] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, movingGroup);
+      return next;
+    });
   };
 
   const handleDeleteContactGroup = (groupId) => {
@@ -715,7 +672,8 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
     );
     setSelectedContactGroupId((current) => (current === groupId ? ALL_CONTACTS_GROUP_ID : current));
     setSelectedContactId(null);
-    setEditingGroupId(null);
+    setEditingGroupId(nextGroups[0]?.id ?? null);
+    setIsManagingGroups(nextGroups.length > 0);
     setMapConnectionTransition(null);
   };
 
@@ -859,7 +817,8 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
   const activeContact = activeContactId ? contacts.find((contact) => contact.id === activeContactId) : null;
   const editingGroup =
     editingGroupId === null ? null : contactGroups.find((group) => group.id === editingGroupId) ?? null;
-  const isEditingGroups = editingGroupId !== null;
+  const editingGroupIndex = editingGroup ? contactGroups.findIndex((group) => group.id === editingGroup.id) : -1;
+  const isEditingGroups = isManagingGroups;
   const activeContactRoleWorldBookEntries = activeContact
     ? normalizedWorldBooks.roleEntries.filter((entry) => entry.contactId === activeContact.id)
     : [];
@@ -938,7 +897,7 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
     if (appId !== 'contacts') {
       setActiveContactId(null);
       setIsEditingContacts(false);
-      setEditingGroupId(null);
+      closeGroupEditing();
       setEditingDraft(null);
       setIsContactWallOpen(false);
     }
@@ -952,7 +911,7 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
       setSelectedContactId(contact.id);
       setEditingDraft(null);
       setIsEditingContacts(false);
-      setEditingGroupId(null);
+      closeGroupEditing();
       setIsContactWallOpen(false);
       setActiveContactId(contact.id);
       setActiveApp('contacts');
@@ -1072,19 +1031,22 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
                 selectedContactGroupId={selectedContactGroupId}
                 contactGroupCounts={contactGroupCounts}
                 isEditingGroups={isEditingGroups}
-                draggingGroupId={draggingGroupId}
+                editingGroupId={editingGroupId}
                 onSelectContactGroup={handleSelectContactGroup}
                 onStartGroupEdit={startGroupEditing}
+                onCloseGroupEdit={closeGroupEditing}
                 onAddContactGroup={handleAddContactGroup}
-                onGroupSortPointerDown={handleGroupSortPointerDown}
               />
               {editingGroup && (
                 <ContactGroupManager
                   group={editingGroup}
                   canDelete={contactGroups.length > 1}
+                  canMoveLeft={editingGroupIndex > 0}
+                  canMoveRight={editingGroupIndex >= 0 && editingGroupIndex < contactGroups.length - 1}
                   onRenameGroup={handleRenameContactGroup}
                   onDeleteGroup={handleDeleteContactGroup}
-                  onClose={() => setEditingGroupId(null)}
+                  onMoveGroup={handleMoveContactGroup}
+                  onClose={closeGroupEditing}
                 />
               )}
             </div>
@@ -1123,7 +1085,7 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
               onStartLongPress={startLongPress}
               onCancelLongPress={cancelLongPress}
               onEnableEditing={() => {
-                setEditingGroupId(null);
+                closeGroupEditing();
                 setIsEditingContacts(true);
               }}
               onContactClick={handleContactClick}

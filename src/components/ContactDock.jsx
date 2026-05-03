@@ -1,9 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ALL_CONTACTS_GROUP_ID } from '../data/contactModel.js';
 import { Icon } from './Icon.jsx';
-
-const GROUP_LONG_PRESS_MS = 520;
-const GROUP_SCROLL_CANCEL_DISTANCE = 12;
 
 function setContactAvatarRef(contactAvatarRefs, contactId, node) {
   if (node) {
@@ -47,114 +44,31 @@ export function ContactGroupBar({
   selectedContactGroupId,
   contactGroupCounts,
   isEditingGroups,
-  draggingGroupId,
+  editingGroupId,
   onSelectContactGroup,
   onStartGroupEdit,
+  onCloseGroupEdit,
   onAddContactGroup,
-  onGroupSortPointerDown,
 }) {
   const getGroupCount = (groupId) => contactGroupCounts?.get(groupId) ?? 0;
-  const longPressTimerRef = useRef(null);
-  const pendingGroupPressRef = useRef(null);
-  const suppressClickRef = useRef(false);
-
-  const cancelLongPress = () => {
-    window.clearTimeout(longPressTimerRef.current);
-    longPressTimerRef.current = null;
-
-    const pendingPress = pendingGroupPressRef.current;
-    if (pendingPress?.target?.hasPointerCapture?.(pendingPress.pointerId)) {
-      pendingPress.target.releasePointerCapture(pendingPress.pointerId);
-    }
-
-    pendingGroupPressRef.current = null;
-  };
-
-  const renderGroupGrip = (canSort = true) => (
-    <span className={canSort ? 'contact-group-grip' : 'contact-group-grip is-disabled'} aria-hidden="true">
-      <span />
-      <span />
-      <span />
-    </span>
-  );
 
   const getGroupChipClassName = (groupId, isSystemGroup = false) =>
     [
       'contact-group-chip',
       selectedContactGroupId === groupId ? 'is-active' : '',
       isEditingGroups ? 'is-editing' : '',
-      draggingGroupId === groupId ? 'is-dragging' : '',
+      editingGroupId === groupId ? 'is-managed' : '',
       isSystemGroup ? 'is-system' : '',
     ]
       .filter(Boolean)
       .join(' ');
 
-  const startGroupPointerDown = (event, groupId, canSort = true) => {
-    if (event.button > 0) return;
-
-    if (isEditingGroups && canSort) {
-      onGroupSortPointerDown?.(event, groupId);
-      return;
-    }
-
-    cancelLongPress();
-    const pointerStart = {
-      button: event.button,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      pointerId: event.pointerId,
-    };
-
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    pendingGroupPressRef.current = {
-      ...pointerStart,
-      startX: event.clientX,
-      startY: event.clientY,
-      lastX: event.clientX,
-      lastY: event.clientY,
-      groupId,
-      canSort,
-      target: event.currentTarget,
-    };
-
-    longPressTimerRef.current = window.setTimeout(() => {
-      const pendingPress = pendingGroupPressRef.current;
-      if (!pendingPress || pendingPress.groupId !== groupId) return;
-
-      suppressClickRef.current = true;
+  const selectGroup = (groupId, isSystemGroup = false) => {
+    onSelectContactGroup(groupId);
+    if (isEditingGroups && !isSystemGroup) {
       onStartGroupEdit?.(groupId);
-      if (pendingPress.canSort) {
-        onGroupSortPointerDown?.(
-          {
-            ...pointerStart,
-            clientX: pendingPress.lastX,
-            clientY: pendingPress.lastY,
-            forceSorting: true,
-          },
-          groupId
-        );
-      }
-      longPressTimerRef.current = null;
-    }, GROUP_LONG_PRESS_MS);
-  };
-
-  const movePendingGroupPointer = (event) => {
-    const pendingPress = pendingGroupPressRef.current;
-    if (!pendingPress || pendingPress.pointerId !== event.pointerId) return;
-
-    pendingPress.lastX = event.clientX;
-    pendingPress.lastY = event.clientY;
-
-    if (!longPressTimerRef.current) return;
-
-    const deltaX = event.clientX - pendingPress.startX;
-    const deltaY = event.clientY - pendingPress.startY;
-    if (Math.hypot(deltaX, deltaY) > GROUP_SCROLL_CANCEL_DISTANCE) {
-      cancelLongPress();
     }
   };
-
-  useEffect(() => () => cancelLongPress(), []);
 
   return (
     <div className={isEditingGroups ? 'contact-group-bar is-editing' : 'contact-group-bar'} aria-label="好友分组">
@@ -162,29 +76,30 @@ export function ContactGroupBar({
 
       <button
         type="button"
-        className={getGroupChipClassName(ALL_CONTACTS_GROUP_ID, true)}
-        aria-pressed={selectedContactGroupId === ALL_CONTACTS_GROUP_ID}
-        data-contact-group-id={ALL_CONTACTS_GROUP_ID}
-        onPointerDown={(event) => startGroupPointerDown(event, ALL_CONTACTS_GROUP_ID, false)}
-        onPointerMove={movePendingGroupPointer}
-        onPointerUp={cancelLongPress}
-        onPointerCancel={cancelLongPress}
-        onContextMenu={(event) => {
-          event.preventDefault();
-          onStartGroupEdit?.(ALL_CONTACTS_GROUP_ID);
-        }}
+        className={isEditingGroups ? 'contact-group-chip contact-group-manage is-active' : 'contact-group-chip contact-group-manage'}
+        aria-pressed={isEditingGroups}
         onClick={() => {
-          if (suppressClickRef.current) {
-            suppressClickRef.current = false;
+          if (isEditingGroups) {
+            onCloseGroupEdit?.();
             return;
           }
 
-          onSelectContactGroup(ALL_CONTACTS_GROUP_ID);
+          onStartGroupEdit?.(selectedContactGroupId);
         }}
+      >
+        <Icon name={isEditingGroups ? 'chevronDown' : 'settings'} className="contact-group-manage-icon" />
+        {isEditingGroups ? '完成' : '管理'}
+      </button>
+
+      <button
+        type="button"
+        className={getGroupChipClassName(ALL_CONTACTS_GROUP_ID, true)}
+        aria-pressed={selectedContactGroupId === ALL_CONTACTS_GROUP_ID}
+        data-contact-group-id={ALL_CONTACTS_GROUP_ID}
+        onClick={() => selectGroup(ALL_CONTACTS_GROUP_ID, true)}
       >
         全部
         <span className="contact-group-count">{contacts.length}</span>
-        {renderGroupGrip(false)}
       </button>
 
       {contactGroups.map((group) => (
@@ -194,26 +109,10 @@ export function ContactGroupBar({
           className={getGroupChipClassName(group.id)}
           aria-pressed={selectedContactGroupId === group.id}
           data-contact-group-id={group.id}
-          onPointerDown={(event) => startGroupPointerDown(event, group.id)}
-          onPointerMove={movePendingGroupPointer}
-          onPointerUp={cancelLongPress}
-          onPointerCancel={cancelLongPress}
-          onContextMenu={(event) => {
-            event.preventDefault();
-            onStartGroupEdit?.(group.id);
-          }}
-          onClick={() => {
-            if (suppressClickRef.current) {
-              suppressClickRef.current = false;
-              return;
-            }
-
-            onSelectContactGroup(group.id);
-          }}
+          onClick={() => selectGroup(group.id)}
         >
           {group.label}
           <span className="contact-group-count">{getGroupCount(group.id)}</span>
-          {renderGroupGrip()}
         </button>
       ))}
     </div>
@@ -223,8 +122,11 @@ export function ContactGroupBar({
 export function ContactGroupManager({
   group,
   canDelete,
+  canMoveLeft,
+  canMoveRight,
   onRenameGroup,
   onDeleteGroup,
+  onMoveGroup,
   onClose,
 }) {
   const [draftName, setDraftName] = useState(group.label);
@@ -240,6 +142,11 @@ export function ContactGroupManager({
 
   return (
     <section className="contact-group-management" aria-label={`${group.label} 分组管理`}>
+      <div className="contact-group-management-heading">
+        <span>正在整理</span>
+        <strong>{group.label}</strong>
+      </div>
+
       <form className="contact-group-rename" onSubmit={submitRename}>
         <label>
           <span>分组名称</span>
@@ -254,6 +161,22 @@ export function ContactGroupManager({
       </form>
 
       <div className="contact-group-management-actions">
+        <button
+          type="button"
+          className="contact-group-move"
+          disabled={!canMoveLeft}
+          onClick={() => onMoveGroup(group.id, -1)}
+        >
+          左移
+        </button>
+        <button
+          type="button"
+          className="contact-group-move"
+          disabled={!canMoveRight}
+          onClick={() => onMoveGroup(group.id, 1)}
+        >
+          右移
+        </button>
         <button
           type="button"
           className="contact-group-delete"
