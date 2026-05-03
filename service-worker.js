@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'live2love-vite-v12';
+const CACHE_VERSION = 'live2love-vite-v13';
 const fromScope = (path) => new URL(path, self.registration.scope).toString();
 const APP_SHELL = [
   'contacts.html',
