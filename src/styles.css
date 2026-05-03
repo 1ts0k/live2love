@@ -2851,6 +2851,7 @@ button {
   justify-content: flex-start;
   overflow: visible;
   padding: 0 10px 2px;
+  pointer-events: auto;
 }
 
 .contacts-map-area .map-wrapper {
@@ -2873,11 +2874,21 @@ button {
   view-transition-name: contact-map;
 }
 
+.map-wrapper.is-interactive {
+  pointer-events: auto;
+}
+
 .world-map {
   display: block;
   width: 100%;
   height: clamp(190px, 34dvh, 270px);
   overflow: visible;
+}
+
+.map-wrapper.is-interactive .world-map {
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
 }
 
 .map-pin {
@@ -3117,6 +3128,11 @@ button {
   transform: scale(0.99);
 }
 
+.contact-group-management-row.is-confirming-delete {
+  border-color: rgba(201, 154, 137, 0.5);
+  background: rgba(201, 154, 137, 0.08);
+}
+
 .contact-group-row-main {
   min-width: 0;
 }
@@ -3155,6 +3171,14 @@ button {
   color: var(--l2l-muted);
   font-size: 11px;
   line-height: 1;
+}
+
+.contact-group-delete-hint {
+  display: block;
+  margin: -2px 7px 5px;
+  color: #8d4f3e;
+  font-size: 11px;
+  line-height: 1.35;
 }
 
 .contact-group-row-edit {
@@ -3222,9 +3246,34 @@ button {
   color: #8d4f3e;
 }
 
+.contact-group-icon-button.is-confirming {
+  width: 70px;
+  border: 1px solid rgba(201, 154, 137, 0.5);
+  background: rgba(201, 154, 137, 0.16);
+  color: #8d4f3e;
+}
+
 .contact-group-icon-button:disabled {
   cursor: default;
   opacity: 0.38;
+}
+
+.contact-group-confirm-label {
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.contact-group-management-empty,
+.contact-group-picker-empty {
+  margin: 0;
+  border: 1px dashed rgba(229, 224, 216, 0.94);
+  border-radius: 12px;
+  background: rgba(254, 254, 254, 0.58);
+  color: var(--l2l-muted);
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .contact-group-action-icon {
@@ -3567,10 +3616,10 @@ button {
 
 .contacts-row.is-pinned-flow {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: start;
   justify-content: initial;
-  gap: 8px 4px;
+  gap: 8px 6px;
 }
 
 .contacts-row.is-pinned-flow .avatar-item {
@@ -3590,10 +3639,10 @@ button {
 
 .contacts-row.is-wall {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: start;
   justify-content: initial;
-  gap: 12px 4px;
+  gap: 12px 6px;
   animation: contacts-wall-rise 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -3742,6 +3791,18 @@ button {
 .avatar-detail-button:focus-visible {
   outline: 2px solid var(--l2l-primary);
   outline-offset: 3px;
+}
+
+.contacts-row.is-wall .avatar-item:nth-child(4n) .avatar-detail-button,
+.contacts-row.is-pinned-flow .avatar-item:nth-child(4n) .avatar-detail-button {
+  right: 0;
+  left: auto;
+  transform: none;
+}
+
+.contacts-row.is-wall .avatar-item:nth-child(4n) .avatar-detail-button:hover,
+.contacts-row.is-pinned-flow .avatar-item:nth-child(4n) .avatar-detail-button:hover {
+  transform: translateY(-1px);
 }
 
 .avatar-detail-icon {
@@ -3952,7 +4013,7 @@ button {
   overflow-y: auto;
   overscroll-behavior: contain;
   pointer-events: auto;
-  padding: 32px 24px calc(28px + env(safe-area-inset-bottom));
+  padding: 0 24px calc(28px + env(safe-area-inset-bottom));
   border: 0;
   border-radius: 0;
   background:
@@ -3981,7 +4042,7 @@ button {
   justify-content: space-between;
   gap: 14px;
   margin: 0 -24px;
-  padding: 10px 24px 6px;
+  padding: calc(10px + env(safe-area-inset-top)) 24px 6px;
   background:
     linear-gradient(
       180deg,

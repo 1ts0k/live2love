@@ -542,8 +542,33 @@ function getSvgPoint(svg, clientX, clientY) {
   return point.matrixTransform(matrix.inverse());
 }
 
+function getGridLocationFromSvgPoint(point, cols, rows) {
+  return {
+    mapX: clampValue(Math.floor(point.x / CELL_SIZE), 0, cols - 1),
+    mapY: clampValue(Math.floor(point.y / CELL_SIZE), 0, rows - 1),
+  };
+}
+
+function getRegionContactFromPoint(point, contacts, cols, rows) {
+  if (!Array.isArray(contacts) || contacts.length === 0) return null;
+
+  const clickedLocation = getGridLocationFromSvgPoint(point, cols, rows);
+  const clickedBounds = getContinentBounds(clickedLocation);
+  const sameRegionContacts = contacts.filter((contact) => areBoundsEqual(getContinentBounds(contact), clickedBounds));
+  const contactPool = sameRegionContacts.length > 0 ? sameRegionContacts : contacts;
+
+  return contactPool.reduce((nearestContact, contact) => {
+    const distance = getPointDistance(point, getMapPoint(contact));
+    if (!nearestContact || distance < nearestContact.distance) {
+      return { contact, distance };
+    }
+
+    return nearestContact;
+  }, null)?.contact ?? null;
+}
+
 export function PixelWorldMap({
-  contacts,
+  contacts = [],
   selectedContactId,
   showUserConnection = false,
   userAvatarRef,
@@ -552,6 +577,7 @@ export function PixelWorldMap({
   connectionTransition = null,
   showSelectedLocalTime = true,
   softAvatarConnection = false,
+  onRegionContactSelect,
 }) {
   const svgRef = useRef(null);
   const viewBoxAnimationRef = useRef(null);
@@ -574,6 +600,7 @@ export function PixelWorldMap({
   const animatedViewBoxRef = useRef(activeViewBox);
   const viewBoxValue = boundsToViewBox(animatedViewBox);
   const userPoint = getMapPoint(USER_LOCATION);
+  const isMapInteractive = typeof onRegionContactSelect === 'function' && contacts.length > 0;
   const userConnectionPath = getUserConnectionPath(userAvatarPoint, userPoint);
   const selectedConnectionStart = selectedContact
     ? selectedAvatarPoint ?? { x: selectedContact.avatarSvgX, y: activeViewBox.y + activeViewBox.height + 120 }
@@ -800,14 +827,35 @@ export function PixelWorldMap({
     };
   }, [showUserConnection, selectedContactId, userAvatarRef, contactAvatarRefs, selectedAvatarRef, softAvatarConnection]);
 
+  const handleMapClick = (event) => {
+    if (!isMapInteractive) return;
+
+    const svg = svgRef.current;
+    if (!svg) return;
+
+    const point = getSvgPoint(svg, event.clientX, event.clientY);
+    const contact = getRegionContactFromPoint(point, contacts, cols, rows);
+    if (contact) onRegionContactSelect(contact);
+  };
+
+  const handleMapKeyDown = (event) => {
+    if (!isMapInteractive || (event.key !== 'Enter' && event.key !== ' ')) return;
+
+    event.preventDefault();
+    onRegionContactSelect(contacts[0]);
+  };
+
   return (
-    <div className="map-wrapper">
+    <div className={isMapInteractive ? 'map-wrapper is-interactive' : 'map-wrapper'}>
       <svg
         ref={svgRef}
         viewBox={viewBoxValue}
         className="world-map"
-        role="img"
-        aria-label="联系人所在城市的像素世界地图"
+        role={isMapInteractive ? 'button' : 'img'}
+        tabIndex={isMapInteractive ? 0 : undefined}
+        aria-label={isMapInteractive ? '点击地图区域，连接该地区的联系人' : '联系人所在城市的像素世界地图'}
+        onClick={handleMapClick}
+        onKeyDown={handleMapKeyDown}
       >
         <defs>
           <linearGradient id="lineGrad" x1="0%" y1="100%" x2="0%" y2="0%">

@@ -95,7 +95,7 @@ function normalizeRawGroupIds(groupIds) {
 }
 
 export function normalizeContactGroups(groups) {
-  const sourceGroups = Array.isArray(groups) && groups.length > 0 ? groups : DEFAULT_CONTACT_GROUPS;
+  const sourceGroups = Array.isArray(groups) ? groups : DEFAULT_CONTACT_GROUPS;
   const seenGroupIds = new Set();
   const customGroups = [];
 
@@ -111,16 +111,18 @@ export function normalizeContactGroups(groups) {
     customGroups.push(normalizedGroup);
   });
 
-  return customGroups.length > 0 ? customGroups : DEFAULT_CONTACT_GROUPS;
+  return customGroups;
 }
 
 export function normalizeContactGroupIds(groupIds, contactGroups = DEFAULT_CONTACT_GROUPS) {
   const normalizedGroups = normalizeContactGroups(contactGroups);
+  if (normalizedGroups.length === 0) return [];
+
   const knownGroupIds = new Set(normalizedGroups.map((group) => group.id));
   const normalizedGroupIds = normalizeRawGroupIds(groupIds).filter((groupId) => knownGroupIds.has(groupId));
   const fallbackGroupId = knownGroupIds.has(DEFAULT_CONTACT_GROUP_ID)
     ? DEFAULT_CONTACT_GROUP_ID
-    : normalizedGroups[0]?.id ?? DEFAULT_CONTACT_GROUP_ID;
+    : normalizedGroups[0].id;
 
   return normalizedGroupIds.length > 0 ? normalizedGroupIds : [fallbackGroupId];
 }

@@ -72,19 +72,23 @@ function ContactGroupPicker({ contact, contactGroups, onGroupsChange }) {
   return (
     <section className="contact-profile-field contact-profile-field-wide">
       <span>好友分组</span>
-      <div className="contact-group-picker">
-        {contactGroups.map((group) => (
-          <button
-            key={group.id}
-            type="button"
-            className={selectedGroupIds.includes(group.id) ? 'contact-group-option is-active' : 'contact-group-option'}
-            aria-pressed={selectedGroupIds.includes(group.id)}
-            onClick={() => toggleGroup(group.id)}
-          >
-            {group.label}
-          </button>
-        ))}
-      </div>
+      {contactGroups.length > 0 ? (
+        <div className="contact-group-picker">
+          {contactGroups.map((group) => (
+            <button
+              key={group.id}
+              type="button"
+              className={selectedGroupIds.includes(group.id) ? 'contact-group-option is-active' : 'contact-group-option'}
+              aria-pressed={selectedGroupIds.includes(group.id)}
+              onClick={() => toggleGroup(group.id)}
+            >
+              {group.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="contact-group-picker-empty">还没有分组，联系人只显示在“全部”。</p>
+      )}
     </section>
   );
 }

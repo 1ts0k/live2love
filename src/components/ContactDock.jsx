@@ -125,6 +125,7 @@ export function ContactGroupManager({
   onClose,
 }) {
   const [renamingGroupId, setRenamingGroupId] = useState(null);
+  const [pendingDeleteGroupId, setPendingDeleteGroupId] = useState(null);
   const [draftName, setDraftName] = useState('');
 
   useEffect(() => {
@@ -137,7 +138,16 @@ export function ContactGroupManager({
     }
   }, [contactGroups, renamingGroupId]);
 
+  useEffect(() => {
+    if (!pendingDeleteGroupId) return;
+
+    if (!contactGroups.some((item) => item.id === pendingDeleteGroupId)) {
+      setPendingDeleteGroupId(null);
+    }
+  }, [contactGroups, pendingDeleteGroupId]);
+
   const startRename = (group) => {
+    setPendingDeleteGroupId(null);
     setRenamingGroupId(group.id);
     setDraftName(group.label);
   };
@@ -145,8 +155,31 @@ export function ContactGroupManager({
   const submitRename = (event, groupId) => {
     event.preventDefault();
     onRenameGroup(groupId, draftName);
+    setPendingDeleteGroupId(null);
     setRenamingGroupId(null);
     setDraftName('');
+  };
+
+  const selectGroup = (groupId) => {
+    setPendingDeleteGroupId(null);
+    onSelectGroup(groupId);
+  };
+
+  const startGroupSort = (event, groupId) => {
+    setPendingDeleteGroupId(null);
+    onGroupSortPointerDown(event, groupId);
+  };
+
+  const deleteGroup = (groupId) => {
+    if (!canDelete) return;
+
+    if (pendingDeleteGroupId !== groupId) {
+      setPendingDeleteGroupId(groupId);
+      return;
+    }
+
+    setPendingDeleteGroupId(null);
+    onDeleteGroup(groupId);
   };
 
   return (
@@ -169,6 +202,7 @@ export function ContactGroupManager({
             const isRenaming = renamingGroupId === group.id;
             const isActive = activeGroupId === group.id;
             const isDragging = draggingGroupId === group.id;
+            const isConfirmingDelete = pendingDeleteGroupId === group.id;
             const count = contactGroupCounts?.get(group.id) ?? 0;
 
             return (
@@ -178,6 +212,7 @@ export function ContactGroupManager({
                   'contact-group-management-row',
                   isActive ? 'is-active' : '',
                   isDragging ? 'is-dragging' : '',
+                  isConfirmingDelete ? 'is-confirming-delete' : '',
                 ]
                   .filter(Boolean)
                   .join(' ')}
@@ -196,10 +231,15 @@ export function ContactGroupManager({
                       <button type="submit">保存</button>
                     </form>
                   ) : (
-                    <button type="button" className="contact-group-row-select" onClick={() => onSelectGroup(group.id)}>
+                    <button type="button" className="contact-group-row-select" onClick={() => selectGroup(group.id)}>
                       <span>{group.label}</span>
                       <small>{count}</small>
                     </button>
+                  )}
+                  {isConfirmingDelete && !isRenaming && (
+                    <span className="contact-group-delete-hint">
+                      再点一次“确认删除”。只删除分组，不删除联系人。
+                    </span>
                   )}
                 </div>
 
@@ -214,17 +254,25 @@ export function ContactGroupManager({
                   </button>
                   <button
                     type="button"
-                    className="contact-group-icon-button is-danger"
+                    className={
+                      isConfirmingDelete
+                        ? 'contact-group-icon-button is-danger is-confirming'
+                        : 'contact-group-icon-button is-danger'
+                    }
                     disabled={!canDelete}
-                    onClick={() => onDeleteGroup(group.id)}
-                    aria-label={`删除${group.label}分组`}
+                    onClick={() => deleteGroup(group.id)}
+                    aria-label={isConfirmingDelete ? `确认删除${group.label}分组` : `删除${group.label}分组`}
                   >
-                    <Icon name="trash" className="contact-group-action-icon" />
+                    {isConfirmingDelete ? (
+                      <span className="contact-group-confirm-label">确认删除</span>
+                    ) : (
+                      <Icon name="trash" className="contact-group-action-icon" />
+                    )}
                   </button>
                   <button
                     type="button"
                     className="contact-group-sort-handle"
-                    onPointerDown={(event) => onGroupSortPointerDown(event, group.id)}
+                    onPointerDown={(event) => startGroupSort(event, group.id)}
                     aria-label={`拖动${group.label}排序`}
                     title="拖动排序"
                   >
@@ -236,6 +284,11 @@ export function ContactGroupManager({
               </div>
             );
           })}
+          {contactGroups.length === 0 && (
+            <div className="contact-group-management-empty">
+              只剩“全部”。新建分组后可以继续整理联系人。
+            </div>
+          )}
         </div>
 
         <button type="button" className="contact-group-done" onClick={onClose}>

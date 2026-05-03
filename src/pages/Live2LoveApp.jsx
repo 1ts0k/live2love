@@ -632,8 +632,13 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
   };
 
   const handleAddContact = () => {
+    const normalizedGroups = normalizeContactGroups(contactGroups);
     const groupIds =
-      selectedContactGroupId === ALL_CONTACTS_GROUP_ID ? [DEFAULT_CONTACT_GROUP_ID] : [selectedContactGroupId];
+      selectedContactGroupId === ALL_CONTACTS_GROUP_ID
+        ? normalizedGroups[0]
+          ? [normalizedGroups[0].id]
+          : []
+        : [selectedContactGroupId];
 
     setIsContactWallOpen(false);
     closeGroupEditing();
@@ -704,10 +709,8 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
 
   const handleDeleteContactGroup = (groupId) => {
     const normalizedGroups = normalizeContactGroups(contactGroups);
-    if (normalizedGroups.length <= 1) return;
-
     const nextGroups = normalizedGroups.filter((group) => group.id !== groupId);
-    const fallbackGroupId = nextGroups[0]?.id ?? DEFAULT_CONTACT_GROUP_ID;
+    if (nextGroups.length === normalizedGroups.length) return;
 
     setContactGroups(nextGroups);
     setContacts((current) =>
@@ -716,14 +719,14 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
 
         return {
           ...contact,
-          groupIds: normalizeContactGroupIds(remainingGroupIds.length > 0 ? remainingGroupIds : [fallbackGroupId], nextGroups),
+          groupIds: normalizeContactGroupIds(remainingGroupIds, nextGroups),
         };
       })
     );
     setSelectedContactGroupId((current) => (current === groupId ? ALL_CONTACTS_GROUP_ID : current));
     setSelectedContactId(null);
     setEditingGroupId(nextGroups[0]?.id ?? null);
-    setIsManagingGroups(nextGroups.length > 0);
+    setIsManagingGroups(true);
     setMapConnectionTransition(null);
   };
 
@@ -854,6 +857,19 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
   };
 
   const visibleContactIndexes = getVisibleContactIndexes();
+  const visibleContacts = visibleContactIndexes.map((index) => contacts[index]).filter(Boolean);
+  const handleSelectMapRegionContact = (contact) => {
+    if (!contact) return;
+
+    setSelectedContactId(contact.id);
+    setEditingDraft(null);
+    setIsEditingContacts(false);
+    setSelectedBulkContactIds(new Set());
+    setConfirmBulkDelete(false);
+    setIsBulkGroupPickerOpen(false);
+    closeGroupEditing();
+    startMapConnectionTransition(contact.id, 'entering');
+  };
   const contactGroupCounts = useMemo(() => {
     return contacts.reduce((counts, contact) => {
       getContactGroupIds(contact, contactGroups).forEach((groupId) => {
@@ -979,7 +995,7 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
   };
   const mapView = (
     <PixelWorldMap
-      contacts={contacts}
+      contacts={activeContact ? contacts : visibleContacts}
       selectedContactId={selectedContactId}
       showUserConnection={showUserConnection}
       userAvatarRef={profileButtonRef}
@@ -988,6 +1004,7 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
       connectionTransition={mapConnectionTransition}
       showSelectedLocalTime={!activeContact}
       softAvatarConnection={Boolean(activeContact)}
+      onRegionContactSelect={activeContact ? undefined : handleSelectMapRegionContact}
     />
   );
   const isChatThreadOpen = activeApp === 'messages' && Boolean(activeThreadId);
@@ -1087,7 +1104,7 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
                   activeGroupId={editingGroupId}
                   contactGroups={contactGroups}
                   contactGroupCounts={contactGroupCounts}
-                  canDelete={contactGroups.length > 1}
+                  canDelete={contactGroups.length > 0}
                   draggingGroupId={draggingGroupId}
                   onSelectGroup={handleSelectContactGroup}
                   onAddGroup={handleAddContactGroup}
