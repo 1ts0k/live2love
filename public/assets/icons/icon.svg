@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="聊天图标">
+  <rect width="512" height="512" rx="112" fill="#F6F4EF"/>
+  <circle cx="256" cy="256" r="172" fill="#FBF8F1" stroke="#E5E0D8" stroke-width="10"/>
+  <path d="M168 346 256 128l88 218-88-62-88 62Z" fill="#C59482"/>
+  <path d="M256 128v156" fill="none" stroke="#A7644E" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="256" cy="284" r="18" fill="#F6F4EF" stroke="#A7644E" stroke-width="10"/>
+  <path d="M154 384h204" stroke="#D8CBB8" stroke-width="12" stroke-linecap="round" stroke-dasharray="10 20"/>
+</svg>
