@@ -2,13 +2,13 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { MAP_GRID } from '../data/map.js';
 
 const COLORS = {
-  bg: '#F6F4EF',
-  textDark: '#1D1D1D',
-  textGray: '#88857F',
-  primary: '#8DA4B7',
-  primaryDeep: '#4F687D',
-  distance: '#9BA0A3',
-  distanceText: '#5F6568',
+  bg: '#FFFFFF',
+  textDark: '#163044',
+  textGray: '#607888',
+  primary: '#C8D3DA',
+  primaryDeep: '#496878',
+  distance: '#C8D3DA',
+  distanceText: '#607888',
 };
 
 const CELL_SIZE = 6;
@@ -987,9 +987,9 @@ export function PixelWorldMap({
           )}
         </defs>
 
-        <path d={STATIC_MAP_PATHS.landPath} fill="#D1CCC3" />
+        <path d={STATIC_MAP_PATHS.landPath} fill="#E2F2FC" />
         {STATIC_MAP_PATHS.waterPaths.map(({ opacity, path }) => (
-          <path key={opacity} d={path} fill="#E5E0D8" opacity={opacity} />
+          <path key={opacity} d={path} fill="#E7F4FC" opacity={opacity} />
         ))}
 
         {selectedContact && (

@@ -4,20 +4,22 @@ export const IMESSAGE_BEAUTIFY_PRESET = {
   id: IMESSAGE_BEAUTIFY_PRESET_ID,
   name: 'iMessage 预设',
   css: `.messages-chat-view {
-  --im-screen: oklch(98.8% 0.002 255);
-  --im-ink: oklch(15% 0.006 255);
-  --im-muted: oklch(63% 0.006 255);
-  --im-soft: oklch(78% 0.005 255);
-  --im-control: oklch(99% 0.002 255);
-  --im-input: oklch(98.2% 0.002 255);
-  --im-grey: oklch(91.7% 0.003 255);
-  --im-blue: #49ACF5;
-  --im-blue-deep: #49ACF5;
+  --im-screen: var(--l2l-bg-base);
+  --im-ink: var(--l2l-text);
+  --im-muted: var(--l2l-muted);
+  --im-soft: var(--l2l-soft);
+  --im-control: var(--l2l-bg-soft);
+  --im-input: var(--l2l-bg-soft);
+  --im-grey: var(--l2l-bg-panel);
+  --im-blue: var(--l2l-selected);
+  --im-blue-deep: var(--l2l-primary-hover);
+  --im-on-blue: var(--l2l-on-selected);
 }
 
 .messages-chat-view .message-row.is-user .message-bubble,
 .messages-chat-view .message-row.is-user .message-bubble::after {
-  background: #49ACF5;
+  background: var(--im-blue);
+  color: var(--im-on-blue);
 }
 
 .messages-chat-view .message-row.is-ai .message-bubble,
