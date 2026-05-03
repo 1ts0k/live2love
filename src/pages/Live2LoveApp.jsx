@@ -82,11 +82,13 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
   const [isBulkGroupPickerOpen, setIsBulkGroupPickerOpen] = useState(false);
   const [isManagingGroups, setIsManagingGroups] = useState(false);
   const [draggingContactId, setDraggingContactId] = useState(null);
+  const [draggingGroupId, setDraggingGroupId] = useState(null);
   const longPressTimerRef = useRef(null);
   const suppressNextClickRef = useRef(false);
   const newContactSeedRef = useRef(1);
   const transitionTimerRef = useRef(null);
   const sortDragRef = useRef(null);
+  const groupSortDragRef = useRef(null);
   const profileButtonRef = useRef(null);
   const detailAvatarRef = useRef(null);
   const contactAvatarRefs = useRef({});
@@ -370,12 +372,16 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
     setConfirmBulkDelete(false);
     setIsBulkGroupPickerOpen(false);
     setDraggingContactId(null);
+    setDraggingGroupId(null);
     sortDragRef.current = null;
+    groupSortDragRef.current = null;
   };
 
   const closeGroupEditing = () => {
     setIsManagingGroups(false);
     setEditingGroupId(null);
+    setDraggingGroupId(null);
+    groupSortDragRef.current = null;
   };
 
   const moveContactBefore = (movingContactId, targetContactId) => {
@@ -391,6 +397,24 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
       const nextTargetIndex = next.findIndex((contact) => contact.id === targetContactId);
       next.splice(nextTargetIndex, 0, movingContact);
 
+      return next;
+    });
+  };
+
+  const moveContactGroupNear = (movingGroupId, targetGroupId, placement = 'before') => {
+    if (!movingGroupId || movingGroupId === ALL_CONTACTS_GROUP_ID || movingGroupId === targetGroupId) return;
+
+    setContactGroups((current) => {
+      const nextGroups = normalizeContactGroups(current);
+      const fromIndex = nextGroups.findIndex((group) => group.id === movingGroupId);
+      if (fromIndex < 0) return current;
+
+      const next = [...nextGroups];
+      const [movingGroup] = next.splice(fromIndex, 1);
+      const targetIndex = next.findIndex((group) => group.id === targetGroupId);
+      if (targetIndex < 0) return current;
+
+      next.splice(placement === 'after' ? targetIndex + 1 : targetIndex, 0, movingGroup);
       return next;
     });
   };
@@ -449,10 +473,53 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
     window.addEventListener('pointercancel', handlePointerUp);
   };
 
+  const handleGroupSortPointerDown = (event, groupId) => {
+    if (!groupId || groupId === ALL_CONTACTS_GROUP_ID || event.button > 0) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    groupSortDragRef.current = {
+      groupId,
+      startX: event.clientX,
+      startY: event.clientY,
+    };
+    setDraggingGroupId(groupId);
+    setEditingGroupId(groupId);
+
+    const handlePointerMove = (moveEvent) => {
+      const dragState = groupSortDragRef.current;
+      if (!dragState) return;
+
+      moveEvent.preventDefault();
+
+      const targetElement = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+      const targetItem = targetElement?.closest('[data-managed-contact-group-id]');
+      const targetGroupId = targetItem?.getAttribute('data-managed-contact-group-id');
+      if (!targetGroupId || targetGroupId === dragState.groupId) return;
+
+      const targetRect = targetItem.getBoundingClientRect();
+      const placement = moveEvent.clientY > targetRect.top + targetRect.height / 2 ? 'after' : 'before';
+      moveContactGroupNear(dragState.groupId, targetGroupId, placement);
+    };
+
+    const handlePointerUp = () => {
+      groupSortDragRef.current = null;
+      setDraggingGroupId(null);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: false });
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+  };
+
   const handleScreenPointerDownCapture = (event) => {
     if (activeApp !== 'contacts') return;
     if (activeContactId) return;
-    if (!isEditingContacts && !editingDraft && !isContactWallOpen && editingGroupId === null) return;
+    if (!isEditingContacts && !editingDraft && !isContactWallOpen && !isManagingGroups) return;
 
     const target = event.target;
     if (
@@ -635,23 +702,6 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
     );
   };
 
-  const handleMoveContactGroup = (groupId, direction) => {
-    if (!groupId || groupId === ALL_CONTACTS_GROUP_ID || direction === 0) return;
-
-    setContactGroups((current) => {
-      const nextGroups = normalizeContactGroups(current);
-      const fromIndex = nextGroups.findIndex((group) => group.id === groupId);
-      const toIndex = fromIndex + direction;
-
-      if (fromIndex < 0 || toIndex < 0 || toIndex >= nextGroups.length) return current;
-
-      const next = [...nextGroups];
-      const [movingGroup] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, movingGroup);
-      return next;
-    });
-  };
-
   const handleDeleteContactGroup = (groupId) => {
     const normalizedGroups = normalizeContactGroups(contactGroups);
     if (normalizedGroups.length <= 1) return;
@@ -815,9 +865,6 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
   }, [contacts, contactGroups]);
   const isPinnedContactFlow = !isContactWallExpanded && visibleContactIndexes.length > COMPACT_CONTACT_LIMIT;
   const activeContact = activeContactId ? contacts.find((contact) => contact.id === activeContactId) : null;
-  const editingGroup =
-    editingGroupId === null ? null : contactGroups.find((group) => group.id === editingGroupId) ?? null;
-  const editingGroupIndex = editingGroup ? contactGroups.findIndex((group) => group.id === editingGroup.id) : -1;
   const isEditingGroups = isManagingGroups;
   const activeContactRoleWorldBookEntries = activeContact
     ? normalizedWorldBooks.roleEntries.filter((entry) => entry.contactId === activeContact.id)
@@ -1031,21 +1078,22 @@ export function Live2LoveApp({ initialApp = 'messages', activeApp: controlledAct
                 selectedContactGroupId={selectedContactGroupId}
                 contactGroupCounts={contactGroupCounts}
                 isEditingGroups={isEditingGroups}
-                editingGroupId={editingGroupId}
                 onSelectContactGroup={handleSelectContactGroup}
                 onStartGroupEdit={startGroupEditing}
                 onCloseGroupEdit={closeGroupEditing}
-                onAddContactGroup={handleAddContactGroup}
               />
-              {editingGroup && (
+              {isEditingGroups && (
                 <ContactGroupManager
-                  group={editingGroup}
+                  activeGroupId={editingGroupId}
+                  contactGroups={contactGroups}
+                  contactGroupCounts={contactGroupCounts}
                   canDelete={contactGroups.length > 1}
-                  canMoveLeft={editingGroupIndex > 0}
-                  canMoveRight={editingGroupIndex >= 0 && editingGroupIndex < contactGroups.length - 1}
+                  draggingGroupId={draggingGroupId}
+                  onSelectGroup={handleSelectContactGroup}
+                  onAddGroup={handleAddContactGroup}
                   onRenameGroup={handleRenameContactGroup}
                   onDeleteGroup={handleDeleteContactGroup}
-                  onMoveGroup={handleMoveContactGroup}
+                  onGroupSortPointerDown={handleGroupSortPointerDown}
                   onClose={closeGroupEditing}
                 />
               )}

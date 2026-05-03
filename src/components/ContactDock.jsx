@@ -44,11 +44,9 @@ export function ContactGroupBar({
   selectedContactGroupId,
   contactGroupCounts,
   isEditingGroups,
-  editingGroupId,
   onSelectContactGroup,
   onStartGroupEdit,
   onCloseGroupEdit,
-  onAddContactGroup,
 }) {
   const getGroupCount = (groupId) => contactGroupCounts?.get(groupId) ?? 0;
 
@@ -57,27 +55,22 @@ export function ContactGroupBar({
       'contact-group-chip',
       selectedContactGroupId === groupId ? 'is-active' : '',
       isEditingGroups ? 'is-editing' : '',
-      editingGroupId === groupId ? 'is-managed' : '',
       isSystemGroup ? 'is-system' : '',
     ]
       .filter(Boolean)
       .join(' ');
 
-  const selectGroup = (groupId, isSystemGroup = false) => {
+  const selectGroup = (groupId) => {
     onSelectContactGroup(groupId);
-    if (isEditingGroups && !isSystemGroup) {
-      onStartGroupEdit?.(groupId);
-    }
   };
 
   return (
     <div className={isEditingGroups ? 'contact-group-bar is-editing' : 'contact-group-bar'} aria-label="好友分组">
-      {isEditingGroups && <ContactGroupCreator onAddGroup={onAddContactGroup} />}
-
       <button
         type="button"
         className={isEditingGroups ? 'contact-group-chip contact-group-manage is-active' : 'contact-group-chip contact-group-manage'}
         aria-pressed={isEditingGroups}
+        aria-expanded={isEditingGroups}
         onClick={() => {
           if (isEditingGroups) {
             onCloseGroupEdit?.();
@@ -87,8 +80,7 @@ export function ContactGroupBar({
           onStartGroupEdit?.(selectedContactGroupId);
         }}
       >
-        <Icon name={isEditingGroups ? 'chevronDown' : 'settings'} className="contact-group-manage-icon" />
-        {isEditingGroups ? '完成' : '管理'}
+        管理
       </button>
 
       <button
@@ -96,7 +88,7 @@ export function ContactGroupBar({
         className={getGroupChipClassName(ALL_CONTACTS_GROUP_ID, true)}
         aria-pressed={selectedContactGroupId === ALL_CONTACTS_GROUP_ID}
         data-contact-group-id={ALL_CONTACTS_GROUP_ID}
-        onClick={() => selectGroup(ALL_CONTACTS_GROUP_ID, true)}
+        onClick={() => selectGroup(ALL_CONTACTS_GROUP_ID)}
       >
         全部
         <span className="contact-group-count">{contacts.length}</span>
@@ -120,76 +112,137 @@ export function ContactGroupBar({
 }
 
 export function ContactGroupManager({
-  group,
+  activeGroupId,
+  contactGroups,
+  contactGroupCounts,
   canDelete,
-  canMoveLeft,
-  canMoveRight,
+  draggingGroupId,
+  onSelectGroup,
+  onAddGroup,
   onRenameGroup,
   onDeleteGroup,
-  onMoveGroup,
+  onGroupSortPointerDown,
   onClose,
 }) {
-  const [draftName, setDraftName] = useState(group.label);
+  const [renamingGroupId, setRenamingGroupId] = useState(null);
+  const [draftName, setDraftName] = useState('');
 
   useEffect(() => {
-    setDraftName(group.label);
-  }, [group.id, group.label]);
+    if (!renamingGroupId) return;
 
-  const submitRename = (event) => {
+    const group = contactGroups.find((item) => item.id === renamingGroupId);
+    if (!group) {
+      setRenamingGroupId(null);
+      setDraftName('');
+    }
+  }, [contactGroups, renamingGroupId]);
+
+  const startRename = (group) => {
+    setRenamingGroupId(group.id);
+    setDraftName(group.label);
+  };
+
+  const submitRename = (event, groupId) => {
     event.preventDefault();
-    onRenameGroup(group.id, draftName);
+    onRenameGroup(groupId, draftName);
+    setRenamingGroupId(null);
+    setDraftName('');
   };
 
   return (
-    <section className="contact-group-management" aria-label={`${group.label} 分组管理`}>
-      <div className="contact-group-management-heading">
-        <span>正在整理</span>
-        <strong>{group.label}</strong>
-      </div>
+    <div className="contact-group-management-backdrop" onClick={onClose}>
+      <section className="contact-group-management" aria-label="好友分组管理" onClick={(event) => event.stopPropagation()}>
+        <header className="contact-group-management-header">
+          <div>
+            <h2>管理分组</h2>
+            <p>拖动右侧把手调整顺序</p>
+          </div>
+          <button type="button" className="contact-group-management-close" onClick={onClose} aria-label="关闭分组管理">
+            ×
+          </button>
+        </header>
 
-      <form className="contact-group-rename" onSubmit={submitRename}>
-        <label>
-          <span>分组名称</span>
-          <input
-            value={draftName}
-            onChange={(event) => setDraftName(event.target.value)}
-            maxLength="10"
-            aria-label="编辑分组名称"
-          />
-        </label>
-        <button type="submit">保存</button>
-      </form>
+        <ContactGroupCreator onAddGroup={onAddGroup} />
 
-      <div className="contact-group-management-actions">
-        <button
-          type="button"
-          className="contact-group-move"
-          disabled={!canMoveLeft}
-          onClick={() => onMoveGroup(group.id, -1)}
-        >
-          左移
-        </button>
-        <button
-          type="button"
-          className="contact-group-move"
-          disabled={!canMoveRight}
-          onClick={() => onMoveGroup(group.id, 1)}
-        >
-          右移
-        </button>
-        <button
-          type="button"
-          className="contact-group-delete"
-          disabled={!canDelete}
-          onClick={() => onDeleteGroup(group.id)}
-        >
-          删除分组
-        </button>
+        <div className="contact-group-management-list" aria-label="分组列表">
+          {contactGroups.map((group) => {
+            const isRenaming = renamingGroupId === group.id;
+            const isActive = activeGroupId === group.id;
+            const isDragging = draggingGroupId === group.id;
+            const count = contactGroupCounts?.get(group.id) ?? 0;
+
+            return (
+              <div
+                key={group.id}
+                className={[
+                  'contact-group-management-row',
+                  isActive ? 'is-active' : '',
+                  isDragging ? 'is-dragging' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                data-managed-contact-group-id={group.id}
+              >
+                <div className="contact-group-row-main">
+                  {isRenaming ? (
+                    <form className="contact-group-row-edit" onSubmit={(event) => submitRename(event, group.id)}>
+                      <input
+                        value={draftName}
+                        onChange={(event) => setDraftName(event.target.value)}
+                        maxLength="10"
+                        autoFocus
+                        aria-label={`编辑${group.label}分组名称`}
+                      />
+                      <button type="submit">保存</button>
+                    </form>
+                  ) : (
+                    <button type="button" className="contact-group-row-select" onClick={() => onSelectGroup(group.id)}>
+                      <span>{group.label}</span>
+                      <small>{count}</small>
+                    </button>
+                  )}
+                </div>
+
+                <div className="contact-group-row-actions">
+                  <button
+                    type="button"
+                    className="contact-group-icon-button"
+                    onClick={() => startRename(group)}
+                    aria-label={`编辑${group.label}分组名称`}
+                  >
+                    <Icon name="pencil" className="contact-group-action-icon" />
+                  </button>
+                  <button
+                    type="button"
+                    className="contact-group-icon-button is-danger"
+                    disabled={!canDelete}
+                    onClick={() => onDeleteGroup(group.id)}
+                    aria-label={`删除${group.label}分组`}
+                  >
+                    <Icon name="trash" className="contact-group-action-icon" />
+                  </button>
+                  <button
+                    type="button"
+                    className="contact-group-sort-handle"
+                    onPointerDown={(event) => onGroupSortPointerDown(event, group.id)}
+                    aria-label={`拖动${group.label}排序`}
+                    title="拖动排序"
+                  >
+                    <span />
+                    <span />
+                    <span />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         <button type="button" className="contact-group-done" onClick={onClose}>
           完成
         </button>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
 
